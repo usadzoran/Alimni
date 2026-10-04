@@ -78,8 +78,14 @@ class StorageService {
 
   constructor() {
     this.loadFromLocal();
-    // Try syncing with Supabase in background
-    this.syncFromSupabase();
+    // Non-blocking background sync
+    try {
+      this.syncFromSupabase().catch((err) => {
+        console.warn('Initial Supabase sync check:', err);
+      });
+    } catch {
+      // safe
+    }
   }
 
   private loadFromLocal() {

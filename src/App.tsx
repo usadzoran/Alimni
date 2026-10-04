@@ -70,23 +70,13 @@ export default function App() {
     }
   };
 
-  if (!child) {
-    return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
-        <div className="text-center space-y-3">
-          <span className="text-5xl animate-bounce block">🎈</span>
-          <h2 className="text-xl font-bold text-slate-800">مرحباً بك في عالم الحروف والأرقام</h2>
-          <p className="text-xs text-slate-500">جارٍ تهيئة المحتوى التعليمي...</p>
-        </div>
-      </div>
-    );
-  }
+  const currentChild = child || storageService.getActiveChild();
 
   return (
     <div className="min-h-screen bg-amber-50/40 text-slate-800 flex flex-col selection:bg-amber-200">
       {/* Universal Top Bar */}
       <Header
-        activeChild={child}
+        activeChild={currentChild}
         activeTab={activeTab}
         onSelectTab={(tab) => {
           if (tab === 'parent' || tab === 'admin') {
@@ -104,20 +94,20 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
         {activeTab === 'home' && (
           <HomeView
-            child={child}
+            child={currentChild}
             onNavigate={handleNavigateFromHome}
             onOpenProfilePicker={() => setProfilePickerOpen(true)}
             onOpenParentGate={() => handleOpenParentLock('parent')}
           />
         )}
 
-        {activeTab === 'letters' && <LettersLearningView child={child} />}
+        {activeTab === 'letters' && <LettersLearningView child={currentChild} />}
 
-        {activeTab === 'numbers' && <NumbersLearningView child={child} />}
+        {activeTab === 'numbers' && <NumbersLearningView child={currentChild} />}
 
         {activeTab === 'games' && (
           <GamesHub
-            child={child}
+            child={currentChild}
             initialGameId={activeGameId}
             onBackToHome={() => setActiveTab('home')}
           />
@@ -125,12 +115,12 @@ export default function App() {
 
         {activeTab === 'levels' && (
           <LevelsRoadmapView
-            child={child}
+            child={currentChild}
             onNavigateToContent={(tab) => setActiveTab(tab)}
           />
         )}
 
-        {activeTab === 'rewards' && <RewardsView child={child} />}
+        {activeTab === 'rewards' && <RewardsView child={currentChild} />}
 
         {activeTab === 'parent' && (
           <ParentDashboard
