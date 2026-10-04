@@ -31,25 +31,25 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-amber-200/80 shadow-xs px-4 md:px-8 py-3 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-6">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-amber-200/80 shadow-xs px-2.5 sm:px-4 md:px-8 py-2.5 sm:py-3 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4 md:gap-6">
         {/* Brand Zone */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={() => {
               audioService.playTap();
               onSelectTab('home');
             }}
-            className="flex items-center gap-2 text-right group cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 text-right group cursor-pointer"
           >
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-300 flex items-center justify-center text-2xl shadow-sm group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-300 flex items-center justify-center text-xl sm:text-2xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
               🎈
             </div>
             <div>
-              <span className="text-xl md:text-2xl font-black text-amber-900 tracking-tight block leading-tight">
+              <span className="text-base sm:text-xl md:text-2xl font-black text-amber-900 tracking-tight block leading-tight">
                 عالم الحروف والأرقام
               </span>
-              <span className="text-xs text-amber-700/80 font-medium hidden sm:block">
+              <span className="text-[11px] text-amber-700/80 font-medium hidden md:block">
                 مغامرات ممتعة للأذكياء الصغار
               </span>
             </div>
@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Action & Child Zone */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
           {/* Child Profile Capsule */}
           {activeChild && (
             <button
@@ -159,9 +159,9 @@ export const Header: React.FC<HeaderProps> = ({
                 onOpenProfilePicker();
               }}
               title="تبديل ملف الطفل"
-              className="flex items-center gap-2 bg-amber-100/90 hover:bg-amber-200/90 px-3 py-1.5 rounded-2xl border border-amber-300 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 bg-amber-100/90 hover:bg-amber-200/90 p-1 sm:px-3 sm:py-1.5 rounded-2xl border border-amber-300 transition-all cursor-pointer"
             >
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xl shadow-2xs">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center text-lg sm:text-xl shadow-2xs">
                 {activeChild.avatar}
               </div>
               <div className="text-right hidden sm:block">
@@ -176,8 +176,8 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Stars Pill */}
-          <div className="flex items-center gap-1 bg-amber-400/20 border border-amber-300 px-3 py-1.5 rounded-2xl font-black text-amber-900 text-sm">
-            <span className="text-amber-500 text-base animate-pulse-subtle">⭐</span>
+          <div className="flex items-center gap-1 bg-amber-400/20 border border-amber-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl font-black text-amber-900 text-xs sm:text-sm">
+            <span className="text-amber-500 text-sm sm:text-base animate-pulse-subtle">⭐</span>
             <span className="tabular-nums font-bold">{activeChild?.stars ?? 0}</span>
           </div>
 
@@ -185,13 +185,13 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={toggleSound}
             title={soundEnabled ? 'كتم الصوت' : 'تشغيل الصوت'}
-            className={`p-2 rounded-2xl border transition-all cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-2xl border transition-all cursor-pointer ${
               soundEnabled
                 ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100'
                 : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
             }`}
           >
-            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
           {/* Parent Zone Access */}
@@ -201,10 +201,10 @@ export const Header: React.FC<HeaderProps> = ({
               onOpenParentLock();
             }}
             title="منطقة ولي الأمر والإدارة"
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white p-2 sm:px-3 sm:py-2 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
-            <Shield className="w-4 h-4 text-amber-400" />
-            <span className="hidden md:inline">ولي الأمر</span>
+            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            <span className="hidden sm:inline">ولي الأمر</span>
           </button>
         </div>
       </div>

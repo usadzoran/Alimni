@@ -1100,7 +1100,7 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
             </h3>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 max-w-2xl mx-auto">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 max-w-2xl mx-auto">
             {memoryCards.map((card) => {
               const show = card.isFlipped || card.isMatched;
               return (
@@ -1108,7 +1108,7 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
                   key={card.uid}
                   disabled={card.isMatched}
                   onClick={() => handleCardClick(card)}
-                  className={`h-28 rounded-2xl border-2 font-black transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  className={`h-24 sm:h-28 rounded-2xl border-2 font-black transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
                     card.isMatched
                       ? 'bg-emerald-100 border-emerald-300 opacity-60'
                       : show

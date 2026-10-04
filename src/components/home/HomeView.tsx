@@ -38,7 +38,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="space-y-6 pb-12">
       {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 p-6 md:p-10 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 p-4 sm:p-6 md:p-10 text-white shadow-lg">
         {/* Playful Floating Decors */}
         <div className="absolute -top-6 -right-6 text-7xl opacity-20 pointer-events-none select-none">
           🎈
@@ -48,23 +48,23 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-center md:text-right space-y-2">
+          <div className="text-center md:text-right space-y-2 w-full md:w-auto">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-full text-xs font-bold text-white border border-white/30 mb-1">
               <span>🎉</span>
               <span>أهلاً وسهلاً بك في</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight drop-shadow-xs">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight drop-shadow-xs">
               عالم الحروف والأرقام
             </h1>
-            <p className="text-amber-100 font-medium text-base md:text-lg max-w-xl">
+            <p className="text-amber-100 font-medium text-sm sm:text-base md:text-lg max-w-xl">
               رحلة مشوقة وتفاعلية بالصوت والألعاب لنتعلم لغتنا العربية الجميلة ونعد الأرقام بمرح!
             </p>
 
             {/* Quick Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center md:justify-start gap-2 sm:gap-3">
               <button
                 onClick={handleStartLearning}
-                className="bg-white hover:bg-amber-50 text-amber-900 font-black px-6 py-3.5 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-base md:text-lg hover:scale-105 active:scale-95 cursor-pointer"
+                className="bg-white hover:bg-amber-50 text-amber-900 font-black px-6 py-3.5 rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-base md:text-lg hover:scale-102 active:scale-95 cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-amber-700 text-amber-700" />
                 <span>ابدأ التعلم الآن</span>
@@ -75,7 +75,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   audioService.playTap();
                   onOpenProfilePicker();
                 }}
-                className="bg-amber-600/60 hover:bg-amber-700/60 border border-white/40 text-white font-bold px-4 py-3.5 rounded-2xl backdrop-blur-xs transition-all flex items-center gap-2 text-sm cursor-pointer"
+                className="bg-amber-600/60 hover:bg-amber-700/60 border border-white/40 text-white font-bold px-4 py-3 rounded-2xl backdrop-blur-xs transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 <span className="text-lg">{child.avatar}</span>
                 <span>تبديل الطفل ({child.name})</span>
@@ -86,7 +86,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   audioService.playTap();
                   onOpenParentGate();
                 }}
-                className="bg-black/20 hover:bg-black/30 border border-white/30 text-white font-bold px-4 py-3.5 rounded-2xl backdrop-blur-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer"
+                className="bg-black/20 hover:bg-black/30 border border-white/30 text-white font-bold px-4 py-3 rounded-2xl backdrop-blur-xs transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer"
               >
                 <HeartHandshake className="w-4 h-4" />
                 <span>إشراف ولي الأمر</span>

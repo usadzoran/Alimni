@@ -191,7 +191,7 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
         </div>
 
         {/* Level Tiers */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-1 sm:gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 max-w-full overflow-x-auto">
           <button
             onClick={() => {
               setActiveTier(1);

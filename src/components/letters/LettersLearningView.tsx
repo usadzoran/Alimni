@@ -193,12 +193,12 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
           {/* Huge Letter Display */}
           <div className="text-center py-4 bg-gradient-to-b from-blue-50/70 to-indigo-50/40 rounded-3xl border border-blue-100">
             <div
-              className="text-8xl md:text-9xl font-black text-blue-600 transition-transform hover:scale-105 select-none leading-none mb-2"
+              className="text-6xl sm:text-8xl md:text-9xl font-black text-blue-600 transition-transform hover:scale-105 select-none leading-none mb-2"
               style={{ color: currentLetter.color }}
             >
               {currentLetter.letter}
             </div>
-            <p className="text-lg md:text-xl font-bold text-slate-700">
+            <p className="text-base sm:text-lg md:text-xl font-bold text-slate-700">
               {currentLetter.description}
             </p>
           </div>
@@ -251,7 +251,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
               <span>أشكال الحرف في الكلمة:</span>
             </h3>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {/* Isolated */}
               <button
                 onClick={() => {

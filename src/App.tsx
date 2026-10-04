@@ -145,7 +145,7 @@ export default function App() {
       </main>
 
       {/* Mobile Sticky Bottom Navigation (Touch-Friendly, <= 15% viewport height) */}
-      <nav className="lg:hidden sticky bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-200 px-2 py-1.5 shadow-lg">
+      <nav className="lg:hidden sticky bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-200 px-2 pt-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] shadow-lg">
         <div className="grid grid-cols-5 gap-1 text-center">
           <button
             onClick={() => {
