@@ -1,0 +1,6 @@
+{
+  "name": "عالم الحروف والأرقام",
+  "description": "منصة تعليمية تفاعلية حقيقية للأطفال لتعلم الحروف العربية، النطق الصحيح، الأرقام، والعد بالألعاب والمكافآت مع لوحة تحكم لأولياء الأمور.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
