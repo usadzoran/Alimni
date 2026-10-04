@@ -540,9 +540,9 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
   // -------------------------------------------------------------
   // Game 10: Mistakes Review Smart Tray
   // -------------------------------------------------------------
-  const troubled = child.troubledItems;
+  const troubled = Array.isArray(child?.troubledItems) ? child.troubledItems : [];
   const troubledLetters = troubled
-    .filter((t) => t.type === 'letter')
+    .filter((t) => t && t.type === 'letter')
     .map((t) => ARABIC_LETTERS.find((l) => l.id === t.id))
     .filter((l): l is ArabicLetter => !!l);
 

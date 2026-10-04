@@ -324,7 +324,7 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               {currentList.map((item) => {
                 const isSelected = item.number === currentItem.number;
-                const isMastered = child.masteredNumbers.includes(item.number);
+                const isMastered = Array.isArray(child?.masteredNumbers) && child.masteredNumbers.includes(item.number);
 
                 return (
                   <button

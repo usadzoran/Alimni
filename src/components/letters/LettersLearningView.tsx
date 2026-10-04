@@ -23,7 +23,8 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
   const currentLetter: ArabicLetter =
     ARABIC_LETTERS.find((l) => l.id === selectedLetterId) || ARABIC_LETTERS[0];
 
-  const isMastered = child.masteredLetters.includes(currentLetter.id);
+  const masteredList = Array.isArray(child?.masteredLetters) ? child.masteredLetters : [];
+  const isMastered = masteredList.includes(currentLetter.id);
 
   // Generate 3 choices for mini quiz: correct letter + 2 random letters
   const generateChoices = () => {
@@ -37,7 +38,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
 
   const handleSelectLetter = (letter: ArabicLetter) => {
     // A child can review any previous mastered letter or the first unmastered letter
-    const maxAllowedId = Math.max(1, ...child.masteredLetters, 1) + 1;
+    const maxAllowedId = Math.max(1, ...masteredList, 1) + 1;
     if (letter.id > maxAllowedId && letter.id > 1) {
       audioService.playWrong();
       audioService.speakArabic('أكمل الحروف السابقة أولاً يا بطل لتفتح هذا الحرف!');
@@ -131,7 +132,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
         <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-4 py-2 rounded-2xl">
           <CheckCircle2 className="w-5 h-5 text-blue-600" />
           <span className="text-sm font-bold text-blue-900">
-            أتقنت {child.masteredLetters.length} من 28 حرفاً
+            أتقنت {masteredList.length} من 28 حرفاً
           </span>
         </div>
       </div>
@@ -140,7 +141,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
       <div className="bg-white rounded-3xl p-3 border border-slate-200 shadow-xs">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {ARABIC_LETTERS.map((item) => {
-            const mastered = child.masteredLetters.includes(item.id);
+            const mastered = masteredList.includes(item.id);
             const isSelected = item.id === currentLetter.id;
             const isLocked = item.id > maxAllowedId;
 

@@ -100,10 +100,13 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ onBackToApp, o
     }
   };
 
-  // Calculations for current child
+  // Calculations for current child with safe array fallbacks
   const quizAttempts = selectedChild ? storageService.getAttemptsForChild(selectedChild.id) : [];
-  const masteredLettersCount = selectedChild?.masteredLetters.length || 0;
-  const troubledItemsCount = selectedChild?.troubledItems.length || 0;
+  const childMasteredLetters = Array.isArray(selectedChild?.masteredLetters) ? selectedChild.masteredLetters : [];
+  const childMasteredNumbers = Array.isArray(selectedChild?.masteredNumbers) ? selectedChild.masteredNumbers : [];
+  const childTroubledItems = Array.isArray(selectedChild?.troubledItems) ? selectedChild.troubledItems : [];
+  const masteredLettersCount = childMasteredLetters.length;
+  const troubledItemsCount = childTroubledItems.length;
 
   return (
     <div className="space-y-6 pb-12">
@@ -238,7 +241,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ onBackToApp, o
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
               </div>
               <div className="text-3xl font-black text-emerald-900 tabular-nums">
-                {selectedChild.masteredNumbers.length}
+                {childMasteredNumbers.length}
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
                 من أصل 100 رقم في النظام
@@ -279,15 +282,15 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ onBackToApp, o
               <div className="flex items-center justify-between">
                 <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <span>الحروف المتقنة بالكامل ({selectedChild.masteredLetters.length})</span>
+                  <span>الحروف المتقنة بالكامل ({childMasteredLetters.length})</span>
                 </h3>
               </div>
 
-              {selectedChild.masteredLetters.length === 0 ? (
+              {childMasteredLetters.length === 0 ? (
                 <p className="text-xs text-slate-400 py-6 text-center">لم يتقن الطفل أي حرف بعد.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {selectedChild.masteredLetters.map((id) => {
+                  {childMasteredLetters.map((id) => {
                     const l = ARABIC_LETTERS.find((item) => item.id === id);
                     if (!l) return null;
                     return (
@@ -318,7 +321,7 @@ export const ParentDashboard: React.FC<ParentDashboardProps> = ({ onBackToApp, o
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {selectedChild.troubledItems.map((item, idx) => {
+                  {childTroubledItems.map((item, idx) => {
                     const letterObj =
                       item.type === 'letter' ? ARABIC_LETTERS.find((l) => l.id === item.id) : null;
 

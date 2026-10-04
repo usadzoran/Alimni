@@ -17,16 +17,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenProfilePicker,
   onOpenParentGate,
 }) => {
-  // Calculations
-  const lettersProgressPercent = Math.round((child.masteredLetters.length / 28) * 100);
-  const numbersProgressPercent = Math.round((child.masteredNumbers.length / 10) * 100); // base 10 for level 1
+  // Calculations with safe fallbacks
+  const masteredLetters = Array.isArray(child?.masteredLetters) ? child.masteredLetters : [];
+  const masteredNumbers = Array.isArray(child?.masteredNumbers) ? child.masteredNumbers : [];
+  const lettersProgressPercent = Math.round((masteredLetters.length / 28) * 100);
+  const numbersProgressPercent = Math.round((masteredNumbers.length / 10) * 100); // base 10 for level 1
   const overallProgress = Math.round((lettersProgressPercent + numbersProgressPercent) / 2);
 
   const handleStartLearning = () => {
     audioService.playTap();
-    audioService.speakArabic(`أهلاً بك يا ${child.name}! هيا نتعلم معاً الحروف والأرقام`);
+    audioService.speakArabic(`أهلاً بك يا ${child?.name || 'بطلنا'}! هيا نتعلم معاً الحروف والأرقام`);
     // Intelligent continue: if letters < 10, go to letters; otherwise check numbers
-    if (child.masteredLetters.length < 10) {
+    if (masteredLetters.length < 10) {
       onNavigate('letters');
     } else {
       onNavigate('numbers');

@@ -9,6 +9,11 @@ interface RewardsViewProps {
 }
 
 export const RewardsView: React.FC<RewardsViewProps> = ({ child }) => {
+  const unlockedChars = Array.isArray(child?.unlockedCharacters) ? child.unlockedCharacters : ['farfour_rabbit'];
+  const masteredLetters = Array.isArray(child?.masteredLetters) ? child.masteredLetters : [];
+  const masteredNumbers = Array.isArray(child?.masteredNumbers) ? child.masteredNumbers : [];
+  const childStars = typeof child?.stars === 'number' ? child.stars : 0;
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Banner */}
@@ -27,7 +32,7 @@ export const RewardsView: React.FC<RewardsViewProps> = ({ child }) => {
           <Star className="w-6 h-6 text-amber-500 fill-amber-400 animate-pulse" />
           <div className="text-right">
             <span className="text-[10px] text-amber-700 font-bold block">رصيد نجومك:</span>
-            <span className="text-xl font-black text-amber-950 tabular-nums">{child.stars} نجمة</span>
+            <span className="text-xl font-black text-amber-950 tabular-nums">{childStars} نجمة</span>
           </div>
         </div>
       </div>
@@ -42,14 +47,14 @@ export const RewardsView: React.FC<RewardsViewProps> = ({ child }) => {
             </h3>
           </div>
           <span className="text-xs font-bold text-slate-500">
-            مفتوح: {child.unlockedCharacters.length} من {MASCOT_CHARACTERS.length}
+            مفتوح: {unlockedChars.length} من {MASCOT_CHARACTERS.length}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MASCOT_CHARACTERS.map((mascot) => {
             const isUnlocked =
-              child.unlockedCharacters.includes(mascot.id) || child.stars >= mascot.unlockStarsRequired;
+              unlockedChars.includes(mascot.id) || childStars >= mascot.unlockStarsRequired;
 
             return (
               <div
@@ -108,11 +113,11 @@ export const RewardsView: React.FC<RewardsViewProps> = ({ child }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {APP_BADGES.map((badge) => {
             let isEarned = false;
-            if (badge.requiredMetric === 'letters_count' && child.masteredLetters.length >= badge.requiredValue) {
+            if (badge.requiredMetric === 'letters_count' && masteredLetters.length >= badge.requiredValue) {
               isEarned = true;
-            } else if (badge.requiredMetric === 'numbers_count' && child.masteredNumbers.length >= badge.requiredValue) {
+            } else if (badge.requiredMetric === 'numbers_count' && masteredNumbers.length >= badge.requiredValue) {
               isEarned = true;
-            } else if (badge.requiredMetric === 'stars_count' && child.stars >= badge.requiredValue) {
+            } else if (badge.requiredMetric === 'stars_count' && childStars >= badge.requiredValue) {
               isEarned = true;
             }
 

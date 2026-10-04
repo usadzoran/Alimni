@@ -45,6 +45,30 @@ const DEFAULT_SETTINGS: ParentSettings = {
   speechRate: 0.85,
 };
 
+export function sanitizeChild(c: unknown): ChildProfile {
+  const obj = (typeof c === 'object' && c !== null ? c : {}) as Partial<ChildProfile>;
+  return {
+    id: typeof obj.id === 'string' && obj.id ? obj.id : `child_${Date.now()}`,
+    parentId: typeof obj.parentId === 'string' ? obj.parentId : undefined,
+    name: typeof obj.name === 'string' && obj.name.trim() ? obj.name : 'سارة',
+    avatar: typeof obj.avatar === 'string' && obj.avatar ? obj.avatar : '🐰',
+    ageGroup: obj.ageGroup === '5-6' ? '5-6' : '3-4',
+    currentLevelId: typeof obj.currentLevelId === 'number' && obj.currentLevelId >= 1 ? obj.currentLevelId : 1,
+    stars: typeof obj.stars === 'number' && !isNaN(obj.stars) ? obj.stars : 0,
+    unlockedCharacters:
+      Array.isArray(obj.unlockedCharacters) && obj.unlockedCharacters.length > 0
+        ? obj.unlockedCharacters
+        : ['farfour_rabbit'],
+    masteredLetters: Array.isArray(obj.masteredLetters) ? obj.masteredLetters : [],
+    masteredNumbers: Array.isArray(obj.masteredNumbers) ? obj.masteredNumbers : [],
+    troubledItems: Array.isArray(obj.troubledItems) ? obj.troubledItems : [],
+    completedLessons: Array.isArray(obj.completedLessons) ? obj.completedLessons : [],
+    totalTimeMinutes: typeof obj.totalTimeMinutes === 'number' && !isNaN(obj.totalTimeMinutes) ? obj.totalTimeMinutes : 0,
+    createdAt: typeof obj.createdAt === 'string' ? obj.createdAt : new Date().toISOString(),
+    lastActive: typeof obj.lastActive === 'string' ? obj.lastActive : new Date().toISOString(),
+  };
+}
+
 class StorageService {
   private activeChildId: string = '';
   private children: ChildProfile[] = [];
@@ -59,14 +83,24 @@ class StorageService {
   }
 
   private loadFromLocal() {
-    if (typeof localStorage === 'undefined') return;
+    if (typeof localStorage === 'undefined') {
+      this.children = DEFAULT_CHILDREN.map(sanitizeChild);
+      this.activeChildId = this.children[0].id;
+      return;
+    }
 
     try {
       const storedChildren = localStorage.getItem('kids_edu_children');
       if (storedChildren) {
-        this.children = JSON.parse(storedChildren);
+        const parsed = JSON.parse(storedChildren);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.children = parsed.map(sanitizeChild);
+        } else {
+          this.children = DEFAULT_CHILDREN.map(sanitizeChild);
+          this.saveChildrenToLocal();
+        }
       } else {
-        this.children = DEFAULT_CHILDREN;
+        this.children = DEFAULT_CHILDREN.map(sanitizeChild);
         this.saveChildrenToLocal();
       }
 
@@ -79,7 +113,8 @@ class StorageService {
 
       const storedAttempts = localStorage.getItem('kids_edu_attempts');
       if (storedAttempts) {
-        this.attempts = JSON.parse(storedAttempts);
+        const parsedAttempts = JSON.parse(storedAttempts);
+        this.attempts = Array.isArray(parsedAttempts) ? parsedAttempts : [];
       }
 
       const storedSettings = localStorage.getItem('kids_edu_settings');
@@ -88,7 +123,7 @@ class StorageService {
       }
     } catch (e) {
       console.error('Failed to load local state:', e);
-      this.children = DEFAULT_CHILDREN;
+      this.children = DEFAULT_CHILDREN.map(sanitizeChild);
       this.activeChildId = this.children[0].id;
     }
   }
@@ -185,11 +220,16 @@ class StorageService {
   // --- Child Management ---
 
   public getChildren(): ChildProfile[] {
-    return this.children;
+    return this.children.map(sanitizeChild);
   }
 
-  public getActiveChild(): ChildProfile | undefined {
-    return this.children.find((c) => c.id === this.activeChildId) || this.children[0];
+  public getActiveChild(): ChildProfile {
+    if (!this.children || this.children.length === 0) {
+      this.children = DEFAULT_CHILDREN.map(sanitizeChild);
+      this.activeChildId = this.children[0].id;
+    }
+    const found = this.children.find((c) => c.id === this.activeChildId);
+    return sanitizeChild(found || this.children[0] || DEFAULT_CHILDREN[0]);
   }
 
   public setActiveChildId(id: string) {

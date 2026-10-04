@@ -199,7 +199,7 @@ export const LevelsRoadmapView: React.FC<LevelsRoadmapViewProps> = ({
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-4 py-2 rounded-2xl">
           <Award className="w-5 h-5 text-amber-600" />
           <span className="text-sm font-bold text-amber-900">
-            أنت في المستوى {child.currentLevelId}: {APP_LEVELS[child.currentLevelId - 1]?.name}
+            أنت في المستوى {child?.currentLevelId || 1}: {APP_LEVELS[(child?.currentLevelId || 1) - 1]?.name}
           </span>
         </div>
       </div>
@@ -207,9 +207,10 @@ export const LevelsRoadmapView: React.FC<LevelsRoadmapViewProps> = ({
       {/* Levels Path Container */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {APP_LEVELS.map((level) => {
-          const isUnlocked = level.id <= child.currentLevelId;
-          const isCurrent = level.id === child.currentLevelId;
-          const isCompleted = level.id < child.currentLevelId;
+          const currentLevel = child?.currentLevelId || 1;
+          const isUnlocked = level.id <= currentLevel;
+          const isCurrent = level.id === currentLevel;
+          const isCompleted = level.id < currentLevel;
 
           return (
             <div
