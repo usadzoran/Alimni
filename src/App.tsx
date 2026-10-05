@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HomeView } from './components/home/HomeView';
+import { AdultOverviewView } from './components/home/AdultOverviewView';
 import { LettersLearningView } from './components/letters/LettersLearningView';
 import { NumbersLearningView } from './components/numbers/NumbersLearningView';
 import { GamesHub } from './components/games/GamesHub';
@@ -15,6 +16,9 @@ import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home } from 'lucide-react';
 
 export default function App() {
+  // The public website opens with a calm overview for adults; children can enter
+  // the focused learning space with one clear action.
+  const [audienceMode, setAudienceMode] = useState<'kids' | 'adults'>('adults');
   const [activeTab, setActiveTab] = useState<
     'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin'
   >('home');
@@ -78,6 +82,12 @@ export default function App() {
       <Header
         activeChild={currentChild}
         activeTab={activeTab}
+        audienceMode={audienceMode}
+        onAudienceModeChange={(mode) => {
+          setAudienceMode(mode);
+          setActiveTab('home');
+          setActiveGameId(undefined);
+        }}
         onSelectTab={(tab) => {
           if (tab === 'parent' || tab === 'admin') {
             handleOpenParentLock(tab);
@@ -92,12 +102,22 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
-        {activeTab === 'home' && (
+        {activeTab === 'home' && audienceMode === 'kids' && (
           <HomeView
             child={currentChild}
             onNavigate={handleNavigateFromHome}
             onOpenProfilePicker={() => setProfilePickerOpen(true)}
             onOpenParentGate={() => handleOpenParentLock('parent')}
+          />
+        )}
+
+        {activeTab === 'home' && audienceMode === 'adults' && (
+          <AdultOverviewView
+            onStartKids={() => {
+              setAudienceMode('kids');
+              setActiveTab('home');
+            }}
+            onOpenParent={() => handleOpenParentLock('parent')}
           />
         )}
 

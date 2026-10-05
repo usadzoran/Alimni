@@ -5,6 +5,8 @@ import { audioService } from '../services/audioService';
 
 interface HeaderProps {
   activeChild?: ChildProfile;
+  audienceMode: 'kids' | 'adults';
+  onAudienceModeChange: (mode: 'kids' | 'adults') => void;
   activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin';
   onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
   onOpenParentLock: () => void;
@@ -13,6 +15,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   activeChild,
+  audienceMode,
+  onAudienceModeChange,
   activeTab,
   onSelectTab,
   onOpenParentLock,
@@ -53,6 +57,30 @@ export const Header: React.FC<HeaderProps> = ({
                 مغامرات ممتعة للأذكياء الصغار
               </span>
             </div>
+          </button>
+        </div>
+
+        {/* Audience switcher: keep the experience obvious for both audiences */}
+        <div className="hidden md:flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => onAudienceModeChange('kids')}
+            aria-pressed={audienceMode === 'kids'}
+            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all ${
+              audienceMode === 'kids' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            🧒 للصغار
+          </button>
+          <button
+            type="button"
+            onClick={() => onAudienceModeChange('adults')}
+            aria-pressed={audienceMode === 'adults'}
+            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all ${
+              audienceMode === 'adults' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            👨‍👩‍👧 للكبار
           </button>
         </div>
 
@@ -151,6 +179,29 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action & Child Zone */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+          <div className="flex md:hidden items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => onAudienceModeChange('kids')}
+              aria-label="واجهة الصغار"
+              className={`rounded-lg px-1.5 py-1 text-[10px] font-black ${
+                audienceMode === 'kids' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-400'
+              }`}
+            >
+              🧒
+            </button>
+            <button
+              type="button"
+              onClick={() => onAudienceModeChange('adults')}
+              aria-label="واجهة الكبار"
+              className={`rounded-lg px-1.5 py-1 text-[10px] font-black ${
+                audienceMode === 'adults' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400'
+              }`}
+            >
+              👨‍👩‍👧
+            </button>
+          </div>
+
           {/* Child Profile Capsule */}
           {activeChild && (
             <button
