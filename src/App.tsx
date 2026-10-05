@@ -6,6 +6,7 @@ import { LettersLearningView } from './components/letters/LettersLearningView';
 import { NumbersLearningView } from './components/numbers/NumbersLearningView';
 import { GamesHub } from './components/games/GamesHub';
 import { PracticeHub } from './components/practice/PracticeHub';
+import { StoriesSongsHub } from './components/stories/StoriesSongsHub';
 import { LevelsRoadmapView } from './components/levels/LevelsRoadmapView';
 import { RewardsView } from './components/rewards/RewardsView';
 import { ParentDashboard } from './components/parent/ParentDashboard';
@@ -21,7 +22,7 @@ export default function App() {
   // the focused learning space with one clear action.
   const [audienceMode, setAudienceMode] = useState<'kids' | 'adults'>('adults');
   const [activeTab, setActiveTab] = useState<
-    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin'
+    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin'
   >('home');
 
   const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
@@ -60,7 +61,7 @@ export default function App() {
   };
 
   const handleNavigateFromHome = (
-    tab: 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent',
+    tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent',
     extra?: string
   ) => {
     if (tab === 'parent') {
@@ -136,6 +137,10 @@ export default function App() {
 
         {activeTab === 'practice' && (
           <PracticeHub child={currentChild} onBackToHome={() => setActiveTab('home')} />
+        )}
+
+        {activeTab === 'stories' && (
+          <StoriesSongsHub child={currentChild} onBackToHome={() => setActiveTab('home')} />
         )}
 
         {activeTab === 'levels' && (

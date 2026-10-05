@@ -5,15 +5,29 @@ class AudioService {
   private speechRate: number = 0.85;
   private isSpeakingState: boolean = false;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private speechRequestId = 0;
   private listeners: Set<(speaking: boolean) => void> = new Set();
 
-  constructor() {
-    // Listeners for speech synthesis voice loading
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        // Voices loaded
-      };
+  private getVoicesWhenReady(): Promise<SpeechSynthesisVoice[]> {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return Promise.resolve([]);
     }
+
+    const synthesis = window.speechSynthesis;
+    const available = synthesis.getVoices();
+    if (available.length > 0) return Promise.resolve(available);
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        synthesis.removeEventListener('voiceschanged', finish);
+        resolve(synthesis.getVoices());
+      };
+      synthesis.addEventListener('voiceschanged', finish, { once: true });
+      window.setTimeout(finish, 500);
+    });
   }
 
   private initAudioContext() {
@@ -64,6 +78,7 @@ class AudioService {
   }
 
   public stopAll() {
+    this.speechRequestId += 1;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       this.notifySpeechState(false);
@@ -81,44 +96,41 @@ class AudioService {
     }
 
     this.stopAll();
+    const requestId = ++this.speechRequestId;
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    this.currentUtterance = utterance;
+    this.getVoicesWhenReady().then((voices) => {
+      if (requestId !== this.speechRequestId || !this.soundEnabled) return;
 
-    // Pick best Arabic voice available
-    const voices = window.speechSynthesis.getVoices();
-    const arabicVoice =
-      voices.find((v) => v.lang.startsWith('ar') || v.lang.includes('AR')) ||
-      voices.find((v) => v.name.toLowerCase().includes('arabic') || v.name.toLowerCase().includes('saudi') || v.name.toLowerCase().includes('maged') || v.name.toLowerCase().includes('tarik') || v.name.toLowerCase().includes('laila'));
+      const utterance = new SpeechSynthesisUtterance(text);
+      this.currentUtterance = utterance;
+      const arabicVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith('ar')) ||
+        voices.find((voice) => /arabic|saudi|maged|tarik|laila/i.test(voice.name));
 
-    if (arabicVoice) {
-      utterance.voice = arabicVoice;
-    }
-    utterance.lang = 'ar-SA';
-    utterance.rate = options?.rate ?? this.speechRate;
-    utterance.pitch = options?.pitch ?? 1.1; // slightly higher friendly pitch
-    utterance.volume = this.volume;
+      if (arabicVoice) utterance.voice = arabicVoice;
+      utterance.lang = arabicVoice?.lang || 'ar-SA';
+      utterance.rate = options?.rate ?? this.speechRate;
+      utterance.pitch = options?.pitch ?? 1.1;
+      utterance.volume = this.volume;
 
-    utterance.onstart = () => {
-      this.notifySpeechState(true);
-    };
+      utterance.onstart = () => this.notifySpeechState(true);
+      utterance.onend = () => {
+        this.notifySpeechState(false);
+        this.currentUtterance = null;
+        options?.onEnd?.();
+      };
+      utterance.onerror = (event) => {
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          console.warn('Speech synthesis notice:', event.error);
+        }
+        this.notifySpeechState(false);
+        this.currentUtterance = null;
+      };
 
-    utterance.onend = () => {
-      this.notifySpeechState(false);
-      this.currentUtterance = null;
-      if (options?.onEnd) options.onEnd();
-    };
-
-    utterance.onerror = (e) => {
-      // If speech was canceled intentionally, ignore
-      if (e.error !== 'canceled') {
-        console.warn('Speech synthesis notice:', e.error);
-      }
-      this.notifySpeechState(false);
-      this.currentUtterance = null;
-    };
-
-    window.speechSynthesis.speak(utterance);
+      // Chrome/Safari can leave the queue paused after a previous utterance.
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      window.speechSynthesis.speak(utterance);
+    });
   }
 
   // --- Web Audio API kid-friendly sound effects ---

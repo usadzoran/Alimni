@@ -6,7 +6,7 @@ import { audioService } from '../../services/audioService';
 
 interface HomeViewProps {
   child: ChildProfile;
-  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent', extra?: string) => void;
+  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent', extra?: string) => void;
   onOpenProfilePicker: () => void;
   onOpenParentGate: () => void;
 }
@@ -170,6 +170,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
           <span className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-purple-700 transition group-hover:bg-purple-50">
             ابدأ التحدي <ArrowLeft className="h-4 w-4" />
+          </span>
+        </div>
+      </button>
+
+      <button
+        onClick={() => {
+          audioService.playTap();
+          onNavigate('stories');
+        }}
+        className="group relative overflow-hidden rounded-3xl border border-orange-300 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 p-5 text-right text-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl md:p-6"
+      >
+        <div className="absolute -left-4 -top-8 text-8xl opacity-15">🎶</div>
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-5xl transition-transform group-hover:scale-110">📖</span>
+            <div>
+              <span className="text-xs font-bold text-orange-100">عالم الحكاية واللحن</span>
+              <h2 className="mt-1 text-2xl font-black">قصص قصيرة وأناشيد تفاعلية</h2>
+              <p className="mt-1 text-sm text-orange-50">استمع، تابع الأحداث، أجب عن السؤال، وردد الأناشيد بصوتك!</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-rose-700 transition group-hover:bg-rose-50">
+            افتح العالم <ArrowLeft className="h-4 w-4" />
           </span>
         </div>
       </button>

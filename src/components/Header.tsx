@@ -7,8 +7,8 @@ interface HeaderProps {
   activeChild?: ChildProfile;
   audienceMode: 'kids' | 'adults';
   onAudienceModeChange: (mode: 'kids' | 'adults') => void;
-  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin';
-  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
+  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin';
+  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
   onOpenParentLock: () => void;
   onOpenProfilePicker: () => void;
 }
@@ -159,6 +159,21 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <ClipboardCheck className="w-4 h-4" />
             <span>اختبر نفسك</span>
+          </button>
+
+          <button
+            onClick={() => {
+              audioService.playTap();
+              onSelectTab('stories');
+            }}
+            className={`px-3 py-1.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'stories'
+                ? 'bg-orange-500 text-white shadow-xs scale-102'
+                : 'text-slate-600 hover:text-orange-600'
+            }`}
+          >
+            <span>📖</span>
+            <span>قصص وأناشيد</span>
           </button>
 
           <button
