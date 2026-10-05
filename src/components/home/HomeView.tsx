@@ -6,7 +6,7 @@ import { audioService } from '../../services/audioService';
 
 interface HomeViewProps {
   child: ChildProfile;
-  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent', extra?: string) => void;
+  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent', extra?: string) => void;
   onOpenProfilePicker: () => void;
   onOpenParentGate: () => void;
 }
@@ -151,6 +151,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* 6 Large Illustrated Section Cards */}
+      <button
+        onClick={() => {
+          audioService.playTap();
+          onNavigate('practice');
+        }}
+        className="group relative overflow-hidden rounded-3xl border border-purple-300 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 p-5 text-right text-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl md:p-6"
+      >
+        <div className="absolute -left-4 -top-8 text-8xl opacity-15">🎮</div>
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-5xl transition-transform group-hover:scale-110">🏆</span>
+            <div>
+              <span className="text-xs font-bold text-purple-200">مختبر المرح والتحدي</span>
+              <h2 className="mt-1 text-2xl font-black">اختبارات وألعاب تعليمية جديدة</h2>
+              <p className="mt-1 text-sm text-purple-100">اختبر الحروف والأرقام، العب الذاكرة، وعدّ الأشياء واربح النجوم!</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-purple-700 transition group-hover:bg-purple-50">
+            ابدأ التحدي <ArrowLeft className="h-4 w-4" />
+          </span>
+        </div>
+      </button>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* 1. Learn Letters */}
         <button

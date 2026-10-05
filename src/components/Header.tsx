@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Shield, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2 } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, ClipboardCheck } from 'lucide-react';
 import { ChildProfile } from '../types';
 import { audioService } from '../services/audioService';
 
@@ -7,8 +7,8 @@ interface HeaderProps {
   activeChild?: ChildProfile;
   audienceMode: 'kids' | 'adults';
   onAudienceModeChange: (mode: 'kids' | 'adults') => void;
-  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin';
-  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
+  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin';
+  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
   onOpenParentLock: () => void;
   onOpenProfilePicker: () => void;
 }
@@ -144,6 +144,21 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Gamepad2 className="w-4 h-4" />
             <span>الألعاب</span>
+          </button>
+
+          <button
+            onClick={() => {
+              audioService.playTap();
+              onSelectTab('practice');
+            }}
+            className={`px-3 py-1.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
+              activeTab === 'practice'
+                ? 'bg-fuchsia-500 text-white shadow-xs scale-102'
+                : 'text-slate-600 hover:text-fuchsia-600'
+            }`}
+          >
+            <ClipboardCheck className="w-4 h-4" />
+            <span>اختبر نفسك</span>
           </button>
 
           <button

@@ -5,6 +5,7 @@ import { AdultOverviewView } from './components/home/AdultOverviewView';
 import { LettersLearningView } from './components/letters/LettersLearningView';
 import { NumbersLearningView } from './components/numbers/NumbersLearningView';
 import { GamesHub } from './components/games/GamesHub';
+import { PracticeHub } from './components/practice/PracticeHub';
 import { LevelsRoadmapView } from './components/levels/LevelsRoadmapView';
 import { RewardsView } from './components/rewards/RewardsView';
 import { ParentDashboard } from './components/parent/ParentDashboard';
@@ -13,14 +14,14 @@ import { ParentLockModal } from './components/auth/ParentLockModal';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
-import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home } from 'lucide-react';
+import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
 
 export default function App() {
   // The public website opens with a calm overview for adults; children can enter
   // the focused learning space with one clear action.
   const [audienceMode, setAudienceMode] = useState<'kids' | 'adults'>('adults');
   const [activeTab, setActiveTab] = useState<
-    'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin'
+    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent' | 'admin'
   >('home');
 
   const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
@@ -59,7 +60,7 @@ export default function App() {
   };
 
   const handleNavigateFromHome = (
-    tab: 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent',
+    tab: 'letters' | 'numbers' | 'games' | 'practice' | 'levels' | 'rewards' | 'parent',
     extra?: string
   ) => {
     if (tab === 'parent') {
@@ -133,6 +134,10 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'practice' && (
+          <PracticeHub child={currentChild} onBackToHome={() => setActiveTab('home')} />
+        )}
+
         {activeTab === 'levels' && (
           <LevelsRoadmapView
             child={currentChild}
@@ -156,7 +161,7 @@ export default function App() {
 
       {/* Mobile Sticky Bottom Navigation (Touch-Friendly, <= 15% viewport height) */}
       <nav className="lg:hidden sticky bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-200 px-2 pt-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] shadow-lg">
-        <div className="grid grid-cols-5 gap-1 text-center">
+        <div className="grid grid-cols-6 gap-1 text-center">
           <button
             onClick={() => {
               audioService.playTap();
@@ -208,6 +213,19 @@ export default function App() {
           >
             <Gamepad2 className="w-5 h-5 mb-0.5" />
             <span className="text-[10px] leading-tight">الألعاب</span>
+          </button>
+
+          <button
+            onClick={() => {
+              audioService.playTap();
+              setActiveTab('practice');
+            }}
+            className={`flex flex-col items-center justify-center py-1.5 rounded-2xl transition-all cursor-pointer ${
+              activeTab === 'practice' ? 'text-fuchsia-600 font-bold bg-fuchsia-50' : 'text-slate-500'
+            }`}
+          >
+            <ClipboardCheck className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px] leading-tight">اختبارات</span>
           </button>
 
           <button
