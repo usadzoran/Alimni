@@ -6,6 +6,7 @@ class AudioService {
   private isSpeakingState: boolean = false;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudio: HTMLAudioElement | null = null;
+  private pronunciationAudioCache: Map<string, HTMLAudioElement> = new Map();
   private listeners: Set<(speaking: boolean) => void> = new Set();
   private voices: SpeechSynthesisVoice[] = [];
   private voicesLoaded: boolean = false;
@@ -16,6 +17,7 @@ class AudioService {
     this.initAudioContext();
     this.initSpeechVoices();
     this.attachAutoUnlock();
+    this.preloadPronunciationAudio();
   }
 
   /**
@@ -318,13 +320,51 @@ class AudioService {
     );
   }
 
+  public playExampleWord(letterId: number, fallbackText: string) {
+    this.playPronunciationAsset(
+      `${import.meta.env.BASE_URL}audio/words/${letterId}.mp3`,
+      fallbackText
+    );
+  }
+
+  /** Preload the short clips in the background so a tap doesn't wait for a network request. */
+  private preloadPronunciationAudio() {
+    if (typeof window === 'undefined') return;
+
+    const base = import.meta.env.BASE_URL;
+    const sources = [
+      ...Array.from({ length: 28 }, (_, index) => `${base}audio/letters/names/${index + 1}.mp3`),
+      ...Array.from({ length: 28 }, (_, index) => `${base}audio/letters/sounds/${index + 1}.mp3`),
+      ...Array.from({ length: 28 }, (_, index) => `${base}audio/words/${index + 1}.mp3`),
+      ...Array.from({ length: 101 }, (_, index) => `${base}audio/numbers/${index}.mp3`),
+    ];
+
+    for (const src of sources) {
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.src = src;
+      audio.volume = this.volume;
+      this.pronunciationAudioCache.set(src, audio);
+      audio.load();
+    }
+  }
+
   private playPronunciationAsset(src: string, fallbackText: string) {
     if (!this.soundEnabled || typeof window === 'undefined') return;
 
     this.stopAll();
-    const audio = new Audio(src);
+    let audio = this.pronunciationAudioCache.get(src);
+    if (!audio) {
+      audio = new Audio(src);
+      this.pronunciationAudioCache.set(src, audio);
+    }
     audio.preload = 'auto';
     audio.volume = this.volume;
+    try {
+      audio.currentTime = 0;
+    } catch {
+      // Metadata may not be ready yet; the pending preload will start at the beginning.
+    }
     this.currentAudio = audio;
 
     const useSpeechFallback = () => {

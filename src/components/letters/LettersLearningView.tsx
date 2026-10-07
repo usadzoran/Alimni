@@ -66,8 +66,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
   };
 
   const playWordAudio = () => {
-    audioService.playChime();
-    audioService.speakArabic(`${currentLetter.example.wordTashkeel}.. ${currentLetter.example.meaning}`);
+    audioService.playExampleWord(currentLetter.id, currentLetter.example.wordTashkeel);
   };
 
   const handleQuizChoice = (chosen: ArabicLetter) => {
