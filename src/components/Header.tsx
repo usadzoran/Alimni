@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Shield, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, Check } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, Check } from 'lucide-react';
 import { ChildProfile } from '../types';
 import { audioService } from '../services/audioService';
 import { storageService } from '../services/storageService';
@@ -13,26 +13,19 @@ export type AppTab =
   | 'stories'
   | 'levels'
   | 'rewards'
-  | 'parent'
   | 'admin';
 
 interface HeaderProps {
   activeChild?: ChildProfile;
   activeTab: AppTab;
-  audienceMode?: 'kids' | 'adults';
-  onAudienceModeChange?: (mode: 'kids' | 'adults') => void;
   onSelectTab: (tab: AppTab) => void;
-  onOpenParentLock: () => void;
   onOpenProfilePicker: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeChild,
   activeTab,
-  audienceMode = 'kids',
-  onAudienceModeChange,
   onSelectTab,
-  onOpenParentLock,
   onOpenProfilePicker,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(audioService.isSoundEnabled());
@@ -213,38 +206,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action & Child Zone */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
-          {/* Audience Mode Switcher (Kids vs Adult Overview) */}
-          {onAudienceModeChange && (
-            <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
-              <button
-                onClick={() => {
-                  audioService.playTap();
-                  onAudienceModeChange('kids');
-                }}
-                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
-                  audienceMode === 'kids'
-                    ? 'bg-amber-400 text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                👶 للأطفال
-              </button>
-              <button
-                onClick={() => {
-                  audioService.playTap();
-                  onAudienceModeChange('adults');
-                }}
-                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
-                  audienceMode === 'adults'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                👨‍👩‍👧 للأسرة
-              </button>
-            </div>
-          )}
-
           {/* Child Profile Capsule */}
           {activeChild && (
             <button
@@ -318,18 +279,6 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Parent Zone Access */}
-          <button
-            onClick={() => {
-              audioService.playTap();
-              onOpenParentLock();
-            }}
-            title="منطقة ولي الأمر والإدارة"
-            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white p-2 sm:px-3 sm:py-2 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-          >
-            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-            <span className="hidden sm:inline">ولي الأمر</span>
-          </button>
         </div>
       </div>
     </header>

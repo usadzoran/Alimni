@@ -1,21 +1,19 @@
 import React from 'react';
-import { BookOpen, Hash, Sparkles, Trophy, Gamepad2, Play, Flame, ArrowLeft, HeartHandshake, CheckCircle } from 'lucide-react';
+import { BookOpen, Hash, Sparkles, Trophy, Gamepad2, Play, Flame, ArrowLeft, CheckCircle } from 'lucide-react';
 import { ChildProfile } from '../../types';
 import { MascotGuide } from '../MascotGuide';
 import { audioService } from '../../services/audioService';
 
 interface HomeViewProps {
   child: ChildProfile;
-  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent', extra?: string) => void;
+  onNavigate: (tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards', extra?: string) => void;
   onOpenProfilePicker: () => void;
-  onOpenParentGate: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   child,
   onNavigate,
   onOpenProfilePicker,
-  onOpenParentGate,
 }) => {
   // Calculations with safe fallbacks
   const masteredLetters = Array.isArray(child?.masteredLetters) ? child.masteredLetters : [];
@@ -81,16 +79,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span>تبديل الطفل ({child.name})</span>
               </button>
 
-              <button
-                onClick={() => {
-                  audioService.playTap();
-                  onOpenParentGate();
-                }}
-                className="bg-black/20 hover:bg-black/30 border border-white/30 text-white font-bold px-4 py-3 rounded-2xl backdrop-blur-xs transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer"
-              >
-                <HeartHandshake className="w-4 h-4" />
-                <span>إشراف ولي الأمر</span>
-              </button>
             </div>
           </div>
 

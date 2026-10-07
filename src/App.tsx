@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HomeView } from './components/home/HomeView';
-import { AdultOverviewView } from './components/home/AdultOverviewView';
 import { LettersLearningView } from './components/letters/LettersLearningView';
 import { NumbersLearningView } from './components/numbers/NumbersLearningView';
 import { GamesHub } from './components/games/GamesHub';
@@ -9,25 +8,18 @@ import { PracticeHub } from './components/practice/PracticeHub';
 import { StoriesSongsHub } from './components/stories/StoriesSongsHub';
 import { LevelsRoadmapView } from './components/levels/LevelsRoadmapView';
 import { RewardsView } from './components/rewards/RewardsView';
-import { ParentDashboard } from './components/parent/ParentDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { ParentLockModal } from './components/auth/ParentLockModal';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
 
 export default function App() {
-  // The public website opens with a calm overview for adults; children can enter
-  // the focused learning space with one clear action.
-  const [audienceMode, setAudienceMode] = useState<'kids' | 'adults'>('adults');
   const [activeTab, setActiveTab] = useState<
-    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin'
+    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'admin'
   >('home');
 
   const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
-  const [parentLockOpen, setParentLockOpen] = useState<boolean>(false);
-  const [targetTabAfterUnlock, setTargetTabAfterUnlock] = useState<'parent' | 'admin'>('parent');
   const [profilePickerOpen, setProfilePickerOpen] = useState<boolean>(false);
 
   // Sync state with storageService
@@ -50,30 +42,16 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleOpenParentLock = (target: 'parent' | 'admin' = 'parent') => {
-    setTargetTabAfterUnlock(target);
-    setParentLockOpen(true);
-  };
-
-  const handleParentUnlockSuccess = () => {
-    setParentLockOpen(false);
-    setActiveTab(targetTabAfterUnlock);
-  };
-
   const handleNavigateFromHome = (
-    tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent',
+    tab: 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards',
     extra?: string
   ) => {
-    if (tab === 'parent') {
-      handleOpenParentLock('parent');
+    if (tab === 'games' && extra) {
+      setActiveGameId(extra);
     } else {
-      if (tab === 'games' && extra) {
-        setActiveGameId(extra);
-      } else {
-        setActiveGameId(undefined);
-      }
-      setActiveTab(tab);
+      setActiveGameId(undefined);
     }
+    setActiveTab(tab);
   };
 
   const currentChild = child || storageService.getActiveChild();
@@ -84,42 +62,20 @@ export default function App() {
       <Header
         activeChild={currentChild}
         activeTab={activeTab}
-        audienceMode={audienceMode}
-        onAudienceModeChange={(mode: 'kids' | 'adults') => {
-          setAudienceMode(mode);
-          setActiveTab('home');
-          setActiveGameId(undefined);
-        }}
         onSelectTab={(tab) => {
-          if (tab === 'parent' || tab === 'admin') {
-            handleOpenParentLock(tab);
-          } else {
-            setActiveGameId(undefined);
-            setActiveTab(tab);
-          }
+          setActiveGameId(undefined);
+          setActiveTab(tab);
         }}
-        onOpenParentLock={() => handleOpenParentLock('parent')}
         onOpenProfilePicker={() => setProfilePickerOpen(true)}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
-        {activeTab === 'home' && audienceMode === 'kids' && (
+        {activeTab === 'home' && (
           <HomeView
             child={currentChild}
             onNavigate={handleNavigateFromHome}
             onOpenProfilePicker={() => setProfilePickerOpen(true)}
-            onOpenParentGate={() => handleOpenParentLock('parent')}
-          />
-        )}
-
-        {activeTab === 'home' && audienceMode === 'adults' && (
-          <AdultOverviewView
-            onStartKids={() => {
-              setAudienceMode('kids');
-              setActiveTab('home');
-            }}
-            onOpenParent={() => handleOpenParentLock('parent')}
           />
         )}
 
@@ -151,13 +107,6 @@ export default function App() {
         )}
 
         {activeTab === 'rewards' && <RewardsView child={currentChild} />}
-
-        {activeTab === 'parent' && (
-          <ParentDashboard
-            onBackToApp={() => setActiveTab('home')}
-            onOpenAdmin={() => setActiveTab('admin')}
-          />
-        )}
 
         {activeTab === 'admin' && (
           <AdminDashboard onBackToApp={() => setActiveTab('home')} />
@@ -249,12 +198,6 @@ export default function App() {
       </nav>
 
       {/* Security & Profile Modals */}
-      <ParentLockModal
-        isOpen={parentLockOpen}
-        onClose={() => setParentLockOpen(false)}
-        onSuccess={handleParentUnlockSuccess}
-      />
-
       <ChildProfilePickerModal
         isOpen={profilePickerOpen}
         onClose={() => setProfilePickerOpen(false)}

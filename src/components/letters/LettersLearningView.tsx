@@ -45,7 +45,7 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
       return;
     }
 
-    audioService.playTap();
+    audioService.playLetterName(letter.id, letter.name);
     setSelectedLetterId(letter.id);
     setQuizAnswered(false);
     setQuizResult(null);
@@ -55,18 +55,14 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
     const shuffled = [...wrongLetters].sort(() => 0.5 - Math.random()).slice(0, 2);
     setChoices([letter, ...shuffled].sort(() => 0.5 - Math.random()));
 
-    // Automatic welcome speech for the letter
-    audioService.speakArabic(`حرف الـ${letter.name}. ${letter.soundPhonic}. ${letter.example.wordTashkeel}`);
   };
 
   const playLetterName = () => {
-    audioService.playChime();
-    audioService.speakArabic(`حرف الـ${currentLetter.name}`);
+    audioService.playLetterName(currentLetter.id, currentLetter.name);
   };
 
   const playLetterSound = () => {
-    audioService.playChime();
-    audioService.speakArabic(currentLetter.soundPhonicAudioText);
+    audioService.playLetterSound(currentLetter.id, currentLetter.soundPhonic);
   };
 
   const playWordAudio = () => {
@@ -91,12 +87,12 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
       });
 
       storageService.markLetterMastered(currentLetter.id);
-      audioService.speakArabic(`أحسنت يا ${child.name}! إجابة صحيحة، هذا هو حرف الـ${currentLetter.name}`);
+      audioService.playLetterName(chosen.id, chosen.name);
     } else {
       audioService.playWrong();
       setQuizResult('wrong');
       storageService.recordMistake('letter', currentLetter.id);
-      audioService.speakArabic(`حاول مرة ثانية يا بطل، ابحث عن حرف الـ${currentLetter.name}`);
+      audioService.playLetterName(chosen.id, chosen.name);
     }
   };
 

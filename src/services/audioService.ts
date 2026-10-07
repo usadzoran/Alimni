@@ -5,6 +5,7 @@ class AudioService {
   private speechRate: number = 0.85;
   private isSpeakingState: boolean = false;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private currentAudio: HTMLAudioElement | null = null;
   private listeners: Set<(speaking: boolean) => void> = new Set();
   private voices: SpeechSynthesisVoice[] = [];
   private voicesLoaded: boolean = false;
@@ -164,15 +165,21 @@ class AudioService {
   }
 
   public stopAll() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
       } catch {
         // ignore
       }
-      this.notifySpeechState(false);
-      this.currentUtterance = null;
     }
+    this.notifySpeechState(false);
+    this.currentUtterance = null;
   }
 
   /**
@@ -216,12 +223,17 @@ class AudioService {
   public speakArabic(text: string, options?: { rate?: number; pitch?: number; onEnd?: () => void }) {
     if (!this.soundEnabled || !text) return;
 
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+
     // Ensure audio context is ready
     this.ensureAudioContextRunning();
 
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      // Fallback tone if SpeechSynthesis is completely unsupported
-      this.playChime();
+      // Never substitute a musical tone for spoken language.
       if (options?.onEnd) options.onEnd();
       return;
     }
@@ -282,6 +294,52 @@ class AudioService {
     } else {
       prepareAndSpeak();
     }
+  }
+
+  /** Play recorded Arabic pronunciation so the sound is consistent across browsers. */
+  public playLetterName(letterId: number, fallbackText: string) {
+    this.playPronunciationAsset(
+      `${import.meta.env.BASE_URL}audio/letters/names/${letterId}.mp3`,
+      fallbackText
+    );
+  }
+
+  public playLetterSound(letterId: number, fallbackText: string) {
+    this.playPronunciationAsset(
+      `${import.meta.env.BASE_URL}audio/letters/sounds/${letterId}.mp3`,
+      fallbackText
+    );
+  }
+
+  public playNumberPronunciation(number: number, fallbackText: string) {
+    this.playPronunciationAsset(
+      `${import.meta.env.BASE_URL}audio/numbers/${number}.mp3`,
+      fallbackText
+    );
+  }
+
+  private playPronunciationAsset(src: string, fallbackText: string) {
+    if (!this.soundEnabled || typeof window === 'undefined') return;
+
+    this.stopAll();
+    const audio = new Audio(src);
+    audio.preload = 'auto';
+    audio.volume = this.volume;
+    this.currentAudio = audio;
+
+    const useSpeechFallback = () => {
+      if (this.currentAudio !== audio) return;
+      this.currentAudio = null;
+      this.speakArabic(fallbackText);
+    };
+
+    audio.onended = () => {
+      if (this.currentAudio === audio) this.currentAudio = null;
+    };
+    audio.onerror = useSpeechFallback;
+
+    const playback = audio.play();
+    if (playback) playback.catch(useSpeechFallback);
   }
 
   // --- Web Audio API kid-friendly sound effects (Instant, zero latency) ---
@@ -479,4 +537,3 @@ class AudioService {
 }
 
 export const audioService = new AudioService();
-

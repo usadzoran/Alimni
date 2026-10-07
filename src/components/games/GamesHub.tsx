@@ -230,10 +230,9 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
   };
 
   const handleG3LetterClick = (id: number) => {
-    audioService.playTap();
     setG3SelectedLetter(id);
     const letterObj = ARABIC_LETTERS.find((l) => l.id === id);
-    if (letterObj) audioService.speakArabic(letterObj.name);
+    if (letterObj) audioService.playLetterName(letterObj.id, letterObj.name);
   };
 
   const handleG3EmojiClick = (id: number) => {
@@ -279,10 +278,9 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
 
   const handleG4TapLetter = (letter: ArabicLetter) => {
     if (g4UserOrdered.some((l) => l.id === letter.id)) return;
-    audioService.playTap();
+    audioService.playLetterName(letter.id, letter.name);
     const updated = [...g4UserOrdered, letter];
     setG4UserOrdered(updated);
-    audioService.speakArabic(letter.name);
 
     if (updated.length === g4Letters.length) {
       const sortedIds = [...g4Letters].map((l) => l.id).sort((a, b) => a - b);
@@ -292,11 +290,9 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
         audioService.playStar();
         setG4Feedback('correct');
         confetti({ particleCount: 50, spread: 60 });
-        audioService.speakArabic('ممتاز! ترتيب أبجدي رائع وصحيح');
       } else {
         audioService.playWrong();
         setG4Feedback('wrong');
-        audioService.speakArabic('الترتيب غير صحيح، اضغط إعادة المحاولة وابدأ بالحرف الأسبق');
       }
     }
   };
@@ -364,12 +360,12 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
       setG6Feedback('correct');
       confetti({ particleCount: 30, spread: 50 });
       storageService.markNumberMastered(g6Target);
-      audioService.speakArabic(`أحسنت! هذا هو الرقم ${getArabicNumberName(g6Target)}`);
+      audioService.playNumberPronunciation(chosen, getArabicNumberName(chosen));
     } else {
       audioService.playWrong();
       setG6Feedback('wrong');
       storageService.recordMistake('number', g6Target);
-      audioService.speakArabic('حاول مجدداً، استمع لنطق الرقم بدقة');
+      audioService.playNumberPronunciation(chosen, getArabicNumberName(chosen));
     }
   };
 
@@ -397,11 +393,11 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
       setG7Feedback('correct');
       confetti({ particleCount: 40, spread: 60 });
       storageService.markNumberMastered(g7Count);
-      audioService.speakArabic(`أحسنت! عددها بالفعل هو ${getArabicNumberName(g7Count)}`);
+      audioService.playNumberPronunciation(chosen, getArabicNumberName(chosen));
     } else {
       audioService.playWrong();
       setG7Feedback('wrong');
-      audioService.speakArabic('عدها بتمهل، أنت قادر على معرفة العدد الصحيح');
+      audioService.playNumberPronunciation(chosen, getArabicNumberName(chosen));
     }
   };
 
@@ -676,8 +672,7 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
           {/* Sound trigger */}
           <button
             onClick={() => {
-              audioService.playChime();
-              audioService.speakArabic(`حرف الـ${g1Target.name}`);
+              audioService.playLetterName(g1Target.id, g1Target.name);
             }}
             className="w-24 h-24 mx-auto rounded-3xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center text-4xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
@@ -1000,8 +995,7 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
 
           <button
             onClick={() => {
-              audioService.playChime();
-              audioService.speakArabic(`الرقم: ${getArabicNumberName(g6Target)}`);
+              audioService.playNumberPronunciation(g6Target, getArabicNumberName(g6Target));
             }}
             className="w-24 h-24 mx-auto rounded-3xl bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center text-4xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >

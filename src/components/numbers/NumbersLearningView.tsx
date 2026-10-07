@@ -54,14 +54,10 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
   const [orderFeedback, setOrderFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   const playNumberSound = (num: number) => {
-    audioService.playChime();
-    const name = getArabicNumberName(num);
-    const digits = toArabicDigits(num);
-    audioService.speakArabic(`الرقم ${name}.. ${digits}`);
+    audioService.playNumberPronunciation(num, getArabicNumberName(num));
   };
 
   const handleSelectNumber = (numItem: NumberItem) => {
-    audioService.playTap();
     setSelectedNum(numItem.number);
     setCountedItems(0);
     playNumberSound(numItem.number);
@@ -70,13 +66,11 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
   const handleTapVisualItem = (index: number) => {
     const nextCount = index + 1;
     setCountedItems(nextCount);
-    audioService.playTap();
-    audioService.speakArabic(`${getArabicNumberName(nextCount)}`);
+    playNumberSound(nextCount);
     if (nextCount === currentItem.number && currentItem.number > 0) {
       audioService.playStar();
       confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
       storageService.markNumberMastered(currentItem.number);
-      audioService.speakArabic(`رائع! عدد العناصر هو ${getArabicNumberName(currentItem.number)}`);
     }
   };
 
@@ -100,12 +94,12 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
       setCountFeedback('correct');
       confetti({ particleCount: 40, spread: 60 });
       storageService.markNumberMastered(targetCount);
-      audioService.speakArabic(`أحسنت! إجابة صحيحة، عددها هو ${getArabicNumberName(targetCount)}`);
+      playNumberSound(chosen);
     } else {
       audioService.playWrong();
       setCountFeedback('wrong');
       storageService.recordMistake('number', targetCount);
-      audioService.speakArabic('عدها بتمهل يا بطل، وحاول مرة أخرى!');
+      playNumberSound(chosen);
     }
   };
 
@@ -152,10 +146,9 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
 
   const handleTapOrderNumber = (num: number) => {
     if (userOrdered.includes(num)) return;
-    audioService.playTap();
     const updated = [...userOrdered, num];
     setUserOrdered(updated);
-    audioService.speakArabic(getArabicNumberName(num));
+    playNumberSound(num);
 
     if (updated.length === orderNumbers.length) {
       // Check if ascending
@@ -167,11 +160,9 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
         audioService.playStar();
         setOrderFeedback('correct');
         confetti({ particleCount: 50, spread: 70 });
-        audioService.speakArabic('عبقري! لقد رتبت الأرقام تصاعدياً بنجاح تام!');
       } else {
         audioService.playWrong();
         setOrderFeedback('wrong');
-        audioService.speakArabic('الترتيب غير صحيح، اضغط على زر الإعادة وحاول مرة أخرى');
       }
     }
   };

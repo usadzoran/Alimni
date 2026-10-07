@@ -66,7 +66,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({ child, onBackToHome })
     setRound(nextRound);
     setStatus('idle');
     setAnswered(false);
-    window.setTimeout(() => audioService.speakArabic(`استمع يا ${child.name}. أين حرف الـ${target.name}؟`), 100);
+    window.setTimeout(() => audioService.playLetterName(target.id, target.name), 100);
   };
 
   const prepareNumberRound = (nextRound: number) => {
@@ -77,7 +77,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({ child, onBackToHome })
     setRound(nextRound);
     setStatus('idle');
     setAnswered(false);
-    window.setTimeout(() => audioService.speakArabic(`أين الرقم ${getArabicNumberName(target)}؟`), 100);
+    window.setTimeout(() => audioService.playNumberPronunciation(target, getArabicNumberName(target)), 100);
   };
 
   const prepareCountRound = (nextRound: number) => {
@@ -111,7 +111,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({ child, onBackToHome })
     });
   };
 
-  const answerRound = (correct: boolean, type: 'letter' | 'number') => {
+  const answerRound = (correct: boolean, type: 'letter' | 'number', selected: number) => {
     if (answered || status === 'finished') return;
     setAnswered(true);
     if (correct) {
@@ -123,16 +123,20 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({ child, onBackToHome })
       confetti({ particleCount: 30, spread: 55, origin: { y: 0.7 } });
       if (type === 'letter') {
         storageService.markLetterMastered(targetLetterId);
-        audioService.speakArabic(`أحسنت! هذا حرف الـ${activeLetter.name}`);
+        audioService.playLetterName(selected, ARABIC_LETTERS.find((letter) => letter.id === selected)?.name || activeLetter.name);
       } else {
         storageService.markNumberMastered(targetNumber);
-        audioService.speakArabic(`رائع! هذا هو الرقم ${getArabicNumberName(targetNumber)}`);
+        audioService.playNumberPronunciation(selected, getArabicNumberName(selected));
       }
     } else {
       setStatus('wrong');
       audioService.playWrong();
       storageService.recordMistake(type, type === 'letter' ? targetLetterId : targetNumber);
-      audioService.speakArabic('محاولة جميلة! استمع وفكر مرة أخرى');
+      if (type === 'letter') {
+        audioService.playLetterName(selected, ARABIC_LETTERS.find((letter) => letter.id === selected)?.name || '');
+      } else {
+        audioService.playNumberPronunciation(selected, getArabicNumberName(selected));
+      }
     }
   };
 
@@ -252,13 +256,13 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({ child, onBackToHome })
       {status === 'finished' ? <ResultCard score={score} total={5} onRestart={resetCurrent} /> : <div className="mx-auto max-w-2xl space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <div className="flex items-center justify-between"><span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700">السؤال {round + 1} من 5</span><span className="text-xs font-bold text-slate-500">⭐ {score} صحيحة</span></div>
         <div className="rounded-3xl bg-gradient-to-br from-purple-50 to-blue-50 p-8 text-center">
-          {isCount ? <><div className="flex flex-wrap justify-center gap-2 text-5xl">{Array.from({ length: countTarget }, (_, index) => <span key={index}>{countEmoji}</span>)}</div><p className="mt-5 text-sm font-bold text-slate-700">كم عنصراً ترى؟</p></> : <><button onClick={() => audioService.speakArabic(isLetter ? `حرف الـ${activeLetter.name}` : `الرقم ${getArabicNumberName(targetNumber)}`)} className="mx-auto flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-purple-700 shadow-sm"><Volume2 className="h-5 w-5" /> استمع للسؤال</button><div className="mt-5 text-lg font-black text-slate-700">{isLetter ? 'اختر الحرف الذي سمعته' : 'اختر الرقم الذي سمعته'}</div></>}
+          {isCount ? <><div className="flex flex-wrap justify-center gap-2 text-5xl">{Array.from({ length: countTarget }, (_, index) => <span key={index}>{countEmoji}</span>)}</div><p className="mt-5 text-sm font-bold text-slate-700">كم عنصراً ترى؟</p></> : <><button onClick={() => isLetter ? audioService.playLetterName(activeLetter.id, activeLetter.name) : audioService.playNumberPronunciation(targetNumber, getArabicNumberName(targetNumber))} className="mx-auto flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-purple-700 shadow-sm"><Volume2 className="h-5 w-5" /> استمع للسؤال</button><div className="mt-5 text-lg font-black text-slate-700">{isLetter ? 'اختر الحرف الذي سمعته' : 'اختر الرقم الذي سمعته'}</div></>}
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(isLetter ? letterOptions : isCount ? countOptions : numberOptions).map((option) => {
             const label = isLetter ? ARABIC_LETTERS.find((letter) => letter.id === option)?.letter : isCount ? toArabicDigits(option) : toArabicDigits(option);
             const correct = isLetter ? option === targetLetterId : isCount ? option === countTarget : option === targetNumber;
-            return <button key={option} disabled={answered} onClick={() => answerRound(correct, isLetter ? 'letter' : 'number')} className={`rounded-2xl border-2 p-4 text-3xl font-black transition sm:p-5 ${answered && correct ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white hover:border-purple-400 hover:bg-purple-50'} ${answered && !correct ? 'opacity-60' : ''}`}>{label}</button>;
+            return <button key={option} disabled={answered} onClick={() => answerRound(correct, isLetter ? 'letter' : 'number', option)} className={`rounded-2xl border-2 p-4 text-3xl font-black transition sm:p-5 ${answered && correct ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white hover:border-purple-400 hover:bg-purple-50'} ${answered && !correct ? 'opacity-60' : ''}`}>{label}</button>;
           })}
         </div>
         {status !== 'idle' && <div className={`flex items-center justify-between rounded-2xl p-4 text-sm font-black ${status === 'correct' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}><span className="inline-flex items-center gap-2">{status === 'correct' ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}{status === 'correct' ? 'إجابة رائعة!' : 'محاولة جميلة، ركّز وحاول مرة أخرى'}</span><button onClick={nextRound} className="rounded-xl bg-slate-900 px-3 py-2 text-xs text-white">{round === 4 ? 'عرض النتيجة' : 'السؤال التالي'}</button></div>}
