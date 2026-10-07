@@ -85,7 +85,7 @@ export default function App() {
         activeChild={currentChild}
         activeTab={activeTab}
         audienceMode={audienceMode}
-        onAudienceModeChange={(mode) => {
+        onAudienceModeChange={(mode: 'kids' | 'adults') => {
           setAudienceMode(mode);
           setActiveTab('home');
           setActiveGameId(undefined);

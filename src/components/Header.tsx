@@ -4,10 +4,24 @@ import { ChildProfile } from '../types';
 import { audioService } from '../services/audioService';
 import { storageService } from '../services/storageService';
 
+export type AppTab =
+  | 'home'
+  | 'letters'
+  | 'numbers'
+  | 'games'
+  | 'practice'
+  | 'stories'
+  | 'levels'
+  | 'rewards'
+  | 'parent'
+  | 'admin';
+
 interface HeaderProps {
   activeChild?: ChildProfile;
-  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin';
-  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
+  activeTab: AppTab;
+  audienceMode?: 'kids' | 'adults';
+  onAudienceModeChange?: (mode: 'kids' | 'adults') => void;
+  onSelectTab: (tab: AppTab) => void;
   onOpenParentLock: () => void;
   onOpenProfilePicker: () => void;
 }
@@ -15,6 +29,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   activeChild,
   activeTab,
+  audienceMode = 'kids',
+  onAudienceModeChange,
   onSelectTab,
   onOpenParentLock,
   onOpenProfilePicker,
@@ -197,6 +213,38 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action & Child Zone */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+          {/* Audience Mode Switcher (Kids vs Adult Overview) */}
+          {onAudienceModeChange && (
+            <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-bold">
+              <button
+                onClick={() => {
+                  audioService.playTap();
+                  onAudienceModeChange('kids');
+                }}
+                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+                  audienceMode === 'kids'
+                    ? 'bg-amber-400 text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                👶 للأطفال
+              </button>
+              <button
+                onClick={() => {
+                  audioService.playTap();
+                  onAudienceModeChange('adults');
+                }}
+                className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
+                  audienceMode === 'adults'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                👨‍👩‍👧 للأسرة
+              </button>
+            </div>
+          )}
+
           {/* Child Profile Capsule */}
           {activeChild && (
             <button
