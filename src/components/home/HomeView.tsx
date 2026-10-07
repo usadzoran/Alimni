@@ -18,13 +18,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
   // Calculations with safe fallbacks
   const masteredLetters = Array.isArray(child?.masteredLetters) ? child.masteredLetters : [];
   const masteredNumbers = Array.isArray(child?.masteredNumbers) ? child.masteredNumbers : [];
+  const childFullName = [child?.name, child?.lastName].filter(Boolean).join(' ');
   const lettersProgressPercent = Math.round((masteredLetters.length / 28) * 100);
   const numbersProgressPercent = Math.round((masteredNumbers.length / 10) * 100); // base 10 for level 1
   const overallProgress = Math.round((lettersProgressPercent + numbersProgressPercent) / 2);
 
   const handleStartLearning = () => {
     audioService.playTap();
-    audioService.speakArabic(`أهلاً بك يا ${child?.name || 'بطلنا'}! هيا نتعلم معاً الحروف والأرقام`);
+    audioService.speakArabic(`أهلاً بك يا ${childFullName || 'بطلنا'}! هيا نتعلم معاً الحروف والأرقام`);
     // Intelligent continue: if letters < 10, go to letters; otherwise check numbers
     if (masteredLetters.length < 10) {
       onNavigate('letters');
@@ -76,7 +77,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 className="bg-amber-600/60 hover:bg-amber-700/60 border border-white/40 text-white font-bold px-4 py-3 rounded-2xl backdrop-blur-xs transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 <span className="text-lg">{child.avatar}</span>
-                <span>تبديل الطفل ({child.name})</span>
+                <span>تبديل الطفل ({childFullName})</span>
               </button>
 
             </div>
@@ -94,8 +95,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
             <div>
-              <h3 className="text-lg font-black text-slate-900">{child.name}</h3>
-              <p className="text-xs text-slate-500 font-medium">الفئة العمرية: {child.ageGroup} سنوات</p>
+              <h3 className="text-lg font-black text-slate-900">{childFullName}</h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {child.age
+                  ? `العمر: ${child.age} ${child.age <= 10 ? 'سنوات' : 'سنة'}`
+                  : `الفئة العمرية: ${child.ageGroup} سنوات`}
+                {child.gradeLevel && ` · ${child.gradeLevel}`}
+              </p>
             </div>
 
             {/* Quick Metrics */}
@@ -122,7 +128,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-emerald-600" />
             <h3 className="font-black text-slate-800 text-base md:text-lg">
-              مستوى تقدم البطل {child.name}
+              مستوى تقدم البطل {childFullName}
             </h3>
           </div>
           <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">

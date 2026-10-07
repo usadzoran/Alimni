@@ -10,6 +10,7 @@ import { LevelsRoadmapView } from './components/levels/LevelsRoadmapView';
 import { RewardsView } from './components/rewards/RewardsView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
+import { ChildOnboarding } from './components/auth/ChildOnboarding';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
@@ -55,6 +56,15 @@ export default function App() {
   };
 
   const currentChild = child || storageService.getActiveChild();
+
+  if (!currentChild.lastName || !currentChild.age || !currentChild.gradeLevel) {
+    return (
+      <ChildOnboarding
+        child={currentChild}
+        onComplete={() => setChild(storageService.getActiveChild())}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-amber-50/40 text-slate-800 flex flex-col selection:bg-amber-200">

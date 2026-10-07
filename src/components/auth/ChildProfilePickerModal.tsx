@@ -87,9 +87,12 @@ export const ChildProfilePickerModal: React.FC<ChildProfilePickerModalProps> = (
                         {c.avatar}
                       </div>
                       <div>
-                        <h4 className="font-black text-slate-900 text-base">{c.name}</h4>
+                        <h4 className="font-black text-slate-900 text-base">{[c.name, c.lastName].filter(Boolean).join(' ')}</h4>
                         <p className="text-xs text-slate-500">
-                          العمر: {c.ageGroup} سنوات · المستوى {c.currentLevelId}
+                          {c.age
+                            ? `العمر: ${c.age} ${c.age <= 10 ? 'سنوات' : 'سنة'}`
+                            : `العمر: ${c.ageGroup} سنوات`}
+                          {c.gradeLevel ? ` · ${c.gradeLevel}` : ` · المستوى ${c.currentLevelId}`}
                         </p>
                       </div>
                     </div>

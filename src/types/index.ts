@@ -64,8 +64,11 @@ export interface ChildProfile {
   id: string;
   parentId?: string;
   name: string;
+  lastName?: string;
   avatar: string;
+  age?: number;
   ageGroup: AgeGroup;
+  gradeLevel?: string;
   currentLevelId: number; // 1 to 6
   stars: number;
   unlockedCharacters: string[]; // mascot IDs

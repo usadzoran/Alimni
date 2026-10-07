@@ -51,8 +51,11 @@ export function sanitizeChild(c: unknown): ChildProfile {
     id: typeof obj.id === 'string' && obj.id ? obj.id : `child_${Date.now()}`,
     parentId: typeof obj.parentId === 'string' ? obj.parentId : undefined,
     name: typeof obj.name === 'string' && obj.name.trim() ? obj.name : 'سارة',
+    lastName: typeof obj.lastName === 'string' && obj.lastName.trim() ? obj.lastName.trim() : undefined,
     avatar: typeof obj.avatar === 'string' && obj.avatar ? obj.avatar : '🐰',
+    age: typeof obj.age === 'number' && Number.isInteger(obj.age) && obj.age >= 3 && obj.age <= 18 ? obj.age : undefined,
     ageGroup: obj.ageGroup === '5-6' ? '5-6' : '3-4',
+    gradeLevel: typeof obj.gradeLevel === 'string' && obj.gradeLevel.trim() ? obj.gradeLevel.trim() : undefined,
     currentLevelId: typeof obj.currentLevelId === 'number' && obj.currentLevelId >= 1 ? obj.currentLevelId : 1,
     stars: typeof obj.stars === 'number' && !isNaN(obj.stars) ? obj.stars : 0,
     unlockedCharacters:
@@ -172,12 +175,17 @@ class StorageService {
       const { data: dbChildren, error } = await supabase.from('children').select('*');
       if (!error && dbChildren && dbChildren.length > 0) {
         // Map db fields to ChildProfile
-        const mappedChildren: ChildProfile[] = dbChildren.map((item) => ({
+      const mappedChildren: ChildProfile[] = dbChildren.map((item) => {
+        const localChild = this.children.find((child) => child.id === item.id);
+        return {
           id: item.id,
           parentId: item.parent_id,
           name: item.name,
+          lastName: localChild?.lastName,
           avatar: item.avatar || '🐰',
+          age: localChild?.age,
           ageGroup: item.age_group || '3-4',
+          gradeLevel: localChild?.gradeLevel,
           currentLevelId: item.current_level || 1,
           stars: item.stars_count || 0,
           unlockedCharacters: ['farfour_rabbit'],
@@ -188,7 +196,8 @@ class StorageService {
           totalTimeMinutes: item.total_time_minutes || 0,
           createdAt: item.created_at,
           lastActive: item.last_active,
-        }));
+        };
+      });
 
         this.children = mappedChildren;
         if (!this.children.some((c) => c.id === this.activeChildId)) {

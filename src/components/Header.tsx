@@ -221,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="text-right hidden sm:block">
                 <span className="text-xs font-bold text-amber-900 block leading-tight">
-                  {activeChild.name}
+                  {[activeChild.name, activeChild.lastName].filter(Boolean).join(' ')}
                 </span>
                 <span className="text-[10px] text-amber-700">
                   المستوى {activeChild.currentLevelId}
