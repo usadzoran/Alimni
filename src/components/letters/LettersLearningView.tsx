@@ -60,17 +60,17 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
   };
 
   const playLetterName = () => {
-    audioService.playTap();
+    audioService.playChime();
     audioService.speakArabic(`حرف الـ${currentLetter.name}`);
   };
 
   const playLetterSound = () => {
-    audioService.playTap();
+    audioService.playChime();
     audioService.speakArabic(currentLetter.soundPhonicAudioText);
   };
 
   const playWordAudio = () => {
-    audioService.playTap();
+    audioService.playChime();
     audioService.speakArabic(`${currentLetter.example.wordTashkeel}.. ${currentLetter.example.meaning}`);
   };
 
@@ -190,10 +190,18 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
             )}
           </div>
 
-          {/* Huge Letter Display */}
-          <div className="text-center py-4 bg-gradient-to-b from-blue-50/70 to-indigo-50/40 rounded-3xl border border-blue-100">
+          {/* Huge Letter Display with Click-to-Speak */}
+          <div
+            onClick={playLetterSound}
+            title="انقر هنا للاستماع لصوت الحرف"
+            className="group relative text-center py-4 bg-gradient-to-b from-blue-50/70 to-indigo-50/40 rounded-3xl border border-blue-100 hover:border-blue-300 transition-all cursor-pointer select-none"
+          >
+            <div className="absolute top-3 left-3 bg-white/90 p-2 rounded-2xl shadow-xs border border-blue-100 text-blue-600 group-hover:scale-110 transition-transform">
+              <Volume2 className="w-5 h-5 animate-pulse" />
+            </div>
+
             <div
-              className="text-6xl sm:text-8xl md:text-9xl font-black text-blue-600 transition-transform hover:scale-105 select-none leading-none mb-2"
+              className="text-6xl sm:text-8xl md:text-9xl font-black text-blue-600 transition-transform group-hover:scale-105 select-none leading-none mb-2"
               style={{ color: currentLetter.color }}
             >
               {currentLetter.letter}
@@ -201,6 +209,9 @@ export const LettersLearningView: React.FC<LettersLearningViewProps> = ({
             <p className="text-base sm:text-lg md:text-xl font-bold text-slate-700">
               {currentLetter.description}
             </p>
+            <span className="inline-block mt-2 text-xs font-bold text-blue-600 bg-white/80 px-3 py-1 rounded-full border border-blue-200">
+              🔊 اضغط على الحرف للاستماع لنطقه
+            </span>
           </div>
 
           {/* 3 Real Audio Playback Triggers */}

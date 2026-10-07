@@ -54,7 +54,7 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
   const [orderFeedback, setOrderFeedback] = useState<'correct' | 'wrong' | null>(null);
 
   const playNumberSound = (num: number) => {
-    audioService.playTap();
+    audioService.playChime();
     const name = getArabicNumberName(num);
     const digits = toArabicDigits(num);
     audioService.speakArabic(`الرقم ${name}.. ${digits}`);
@@ -369,9 +369,17 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
                 </button>
               </div>
 
-              {/* Big Numerals */}
-              <div className="py-4 bg-gradient-to-b from-emerald-50 to-teal-50/40 rounded-3xl border border-emerald-100">
-                <div className="text-8xl md:text-9xl font-black text-emerald-600 mb-1 leading-none select-none">
+              {/* Big Numerals with Click-to-Speak */}
+              <div
+                onClick={() => playNumberSound(currentItem.number)}
+                title="اضغط للاستماع لنطق الرقم"
+                className="group relative py-4 bg-gradient-to-b from-emerald-50 to-teal-50/40 rounded-3xl border border-emerald-100 hover:border-emerald-300 transition-all cursor-pointer select-none"
+              >
+                <div className="absolute top-3 left-3 bg-white/90 p-2 rounded-2xl shadow-xs border border-emerald-100 text-emerald-600 group-hover:scale-110 transition-transform">
+                  <Volume2 className="w-5 h-5 animate-pulse" />
+                </div>
+
+                <div className="text-8xl md:text-9xl font-black text-emerald-600 mb-1 leading-none group-hover:scale-105 transition-transform">
                   {currentItem.arabicNumeral}
                 </div>
                 <div className="text-2xl font-black text-slate-800">
@@ -380,6 +388,9 @@ export const NumbersLearningView: React.FC<NumbersLearningViewProps> = ({ child 
                 <div className="text-xs font-bold text-slate-500 mt-1">
                   الرقم الإنجليزي: {currentItem.number}
                 </div>
+                <span className="inline-block mt-2 text-xs font-bold text-emerald-700 bg-white/80 px-3 py-1 rounded-full border border-emerald-200">
+                  🔊 اضغط للاستماع لنطق الرقم
+                </span>
               </div>
 
               {/* Audio Play Button */}

@@ -1,44 +1,105 @@
 class AudioService {
   private audioCtx: AudioContext | null = null;
   private soundEnabled: boolean = true;
-  private volume: number = 0.8;
+  private volume: number = 0.9;
   private speechRate: number = 0.85;
   private isSpeakingState: boolean = false;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
-  private speechRequestId = 0;
   private listeners: Set<(speaking: boolean) => void> = new Set();
+  private voices: SpeechSynthesisVoice[] = [];
+  private voicesLoaded: boolean = false;
+  private keepAliveInterval: number | null = null;
+  private isUnlocked: boolean = false;
 
-  private getVoicesWhenReady(): Promise<SpeechSynthesisVoice[]> {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return Promise.resolve([]);
+  constructor() {
+    this.initAudioContext();
+    this.initSpeechVoices();
+    this.attachAutoUnlock();
+  }
+
+  /**
+   * Automatically unlocks Web Audio and SpeechSynthesis on first user interaction
+   */
+  private attachAutoUnlock() {
+    if (typeof window === 'undefined') return;
+
+    const unlock = () => {
+      this.unlockAudio();
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+
+    window.addEventListener('click', unlock, { passive: true });
+    window.addEventListener('touchstart', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+  }
+
+  public unlockAudio() {
+    if (this.isUnlocked) return;
+    this.isUnlocked = true;
+
+    // 1. Resume AudioContext if suspended
+    this.initAudioContext();
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
     }
 
-    const synthesis = window.speechSynthesis;
-    const available = synthesis.getVoices();
-    if (available.length > 0) return Promise.resolve(available);
+    // 2. Refresh voices
+    this.initSpeechVoices();
 
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        synthesis.removeEventListener('voiceschanged', finish);
-        resolve(synthesis.getVoices());
-      };
-      synthesis.addEventListener('voiceschanged', finish, { once: true });
-      window.setTimeout(finish, 500);
-    });
+    // 3. Resume SpeechSynthesis if paused
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }
   }
 
   private initAudioContext() {
-    if (!this.audioCtx && typeof window !== 'undefined') {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (typeof window === 'undefined') return;
+    if (!this.audioCtx) {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioContextClass) {
-        this.audioCtx = new AudioContextClass();
+        try {
+          this.audioCtx = new AudioContextClass();
+        } catch (e) {
+          console.warn('AudioContext init error:', e);
+        }
       }
     }
+  }
+
+  private ensureAudioContextRunning(): AudioContext | null {
+    this.initAudioContext();
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
+      this.audioCtx.resume().catch(() => {});
+    }
+    return this.audioCtx;
+  }
+
+  private initSpeechVoices() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    const loadVoices = () => {
+      try {
+        const v = window.speechSynthesis.getVoices();
+        if (v && v.length > 0) {
+          this.voices = v;
+          this.voicesLoaded = true;
+        }
+      } catch (e) {
+        console.warn('SpeechSynthesis voice loading warning:', e);
+      }
+    };
+
+    loadVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        loadVoices();
+      };
     }
   }
 
@@ -57,8 +118,16 @@ class AudioService {
     this.volume = Math.max(0, Math.min(1, vol));
   }
 
+  public getVolume(): number {
+    return this.volume;
+  }
+
   public setSpeechRate(rate: number) {
     this.speechRate = Math.max(0.6, Math.min(1.4, rate));
+  }
+
+  public getSpeechRate(): number {
+    return this.speechRate;
   }
 
   public subscribeToSpeechState(cb: (speaking: boolean) => void): () => void {
@@ -71,6 +140,23 @@ class AudioService {
   private notifySpeechState(speaking: boolean) {
     this.isSpeakingState = speaking;
     this.listeners.forEach((cb) => cb(speaking));
+
+    // Handle Chrome speech synthesis keep-alive for utterances
+    if (speaking) {
+      if (!this.keepAliveInterval && typeof window !== 'undefined') {
+        this.keepAliveInterval = window.setInterval(() => {
+          if (window.speechSynthesis && window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        }, 10000);
+      }
+    } else {
+      if (this.keepAliveInterval && typeof window !== 'undefined') {
+        window.clearInterval(this.keepAliveInterval);
+        this.keepAliveInterval = null;
+      }
+    }
   }
 
   public isSpeaking(): boolean {
@@ -78,103 +164,194 @@ class AudioService {
   }
 
   public stopAll() {
-    this.speechRequestId += 1;
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // ignore
+      }
       this.notifySpeechState(false);
       this.currentUtterance = null;
     }
   }
 
   /**
-   * Speak Arabic text with kid-friendly tuning and guaranteed non-overlap
+   * Find the highest quality Arabic voice available in the client browser
+   */
+  private getBestArabicVoice(): SpeechSynthesisVoice | null {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+
+    let available = this.voices;
+    if (!available || available.length === 0) {
+      available = window.speechSynthesis.getVoices();
+      this.voices = available;
+    }
+
+    if (!available || available.length === 0) return null;
+
+    // 1. Dedicated Arabic locale matches (Saudi, Egypt, Emirates, etc.)
+    const exactLocales = ['ar-SA', 'ar-EG', 'ar-AE', 'ar-XA', 'ar-KW', 'ar-QA', 'ar-OM', 'ar-JO', 'ar-LB', 'ar'];
+    for (const loc of exactLocales) {
+      const match = available.find((v) => v.lang.toLowerCase() === loc.toLowerCase());
+      if (match) return match;
+    }
+
+    // 2. Any voice starting with 'ar'
+    const anyAr = available.find((v) => v.lang.toLowerCase().startsWith('ar'));
+    if (anyAr) return anyAr;
+
+    // 3. Voice names containing known Arabic keywords
+    const keywords = ['arabic', 'saudi', 'maged', 'tarik', 'laila', 'zeina', 'salma', 'youssef', 'hoda', 'naayf', 'mariam'];
+    const nameMatch = available.find((v) =>
+      keywords.some((kw) => v.name.toLowerCase().includes(kw))
+    );
+    if (nameMatch) return nameMatch;
+
+    return null;
+  }
+
+  /**
+   * Speak Arabic text with robust Chromium cancel fix, voice resolution, and tone fallback
    */
   public speakArabic(text: string, options?: { rate?: number; pitch?: number; onEnd?: () => void }) {
     if (!this.soundEnabled || !text) return;
+
+    // Ensure audio context is ready
+    this.ensureAudioContextRunning();
+
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      // Fallback tone if SpeechSynthesis is completely unsupported
+      this.playChime();
+      if (options?.onEnd) options.onEnd();
       return;
     }
 
-    this.stopAll();
-    const requestId = ++this.speechRequestId;
+    // Resume if paused
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
 
-    this.getVoicesWhenReady().then((voices) => {
-      if (requestId !== this.speechRequestId || !this.soundEnabled) return;
-
+    const prepareAndSpeak = () => {
       const utterance = new SpeechSynthesisUtterance(text);
       this.currentUtterance = utterance;
-      const arabicVoice = voices.find((voice) => voice.lang.toLowerCase().startsWith('ar')) ||
-        voices.find((voice) => /arabic|saudi|maged|tarik|laila/i.test(voice.name));
 
-      if (arabicVoice) utterance.voice = arabicVoice;
-      utterance.lang = arabicVoice?.lang || 'ar-SA';
+      const arabicVoice = this.getBestArabicVoice();
+      if (arabicVoice) {
+        utterance.voice = arabicVoice;
+        utterance.lang = arabicVoice.lang;
+      } else {
+        utterance.lang = 'ar-SA';
+      }
+
       utterance.rate = options?.rate ?? this.speechRate;
-      utterance.pitch = options?.pitch ?? 1.1;
+      utterance.pitch = options?.pitch ?? 1.1; // friendly slightly higher pitch for kids
       utterance.volume = this.volume;
 
-      utterance.onstart = () => this.notifySpeechState(true);
+      utterance.onstart = () => {
+        this.notifySpeechState(true);
+      };
+
       utterance.onend = () => {
         this.notifySpeechState(false);
         this.currentUtterance = null;
-        options?.onEnd?.();
+        if (options?.onEnd) options.onEnd();
       };
-      utterance.onerror = (event) => {
-        if (event.error !== 'canceled' && event.error !== 'interrupted') {
-          console.warn('Speech synthesis notice:', event.error);
+
+      utterance.onerror = (e) => {
+        if (e.error !== 'canceled') {
+          console.warn('SpeechSynthesis event notice:', e.error);
         }
         this.notifySpeechState(false);
         this.currentUtterance = null;
       };
 
-      // Chrome/Safari can leave the queue paused after a previous utterance.
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('Failed to speak utterance:', err);
+        this.notifySpeechState(false);
+      }
+    };
+
+    // CRITICAL CHROMIUM BUG FIX:
+    // If speaking or pending, cancel first, but wait 40ms before speaking next utterance
+    // because calling cancel() immediately followed by speak() drops the new utterance in Chromium!
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
       window.speechSynthesis.cancel();
-      window.speechSynthesis.resume();
-      window.speechSynthesis.speak(utterance);
-    });
+      setTimeout(prepareAndSpeak, 45);
+    } else {
+      prepareAndSpeak();
+    }
   }
 
-  // --- Web Audio API kid-friendly sound effects ---
+  // --- Web Audio API kid-friendly sound effects (Instant, zero latency) ---
 
   public playTap() {
     if (!this.soundEnabled) return;
     try {
-      this.initAudioContext();
-      if (!this.audioCtx) return;
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
 
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, this.audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, this.audioCtx.currentTime + 0.08);
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
 
-      gain.gain.setValueAtTime(this.volume * 0.15, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.08);
+      gain.gain.setValueAtTime(this.volume * 0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
 
       osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
+      gain.connect(ctx.destination);
 
       osc.start();
-      osc.stop(this.audioCtx.currentTime + 0.09);
+      osc.stop(ctx.currentTime + 0.09);
     } catch {
-      // AudioContext policy
+      // audio policy
+    }
+  }
+
+  public playChime() {
+    if (!this.soundEnabled) return;
+    try {
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+
+      gain.gain.setValueAtTime(this.volume * 0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.26);
+    } catch {
+      // audio policy
     }
   }
 
   public playCorrect() {
     if (!this.soundEnabled) return;
     try {
-      this.initAudioContext();
-      if (!this.audioCtx) return;
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
 
-      const now = this.audioCtx.currentTime;
+      const now = ctx.currentTime;
       // Cheerful rising major triad (C5, E5, G5, C6)
       const freqs = [523.25, 659.25, 783.99, 1046.5];
 
       freqs.forEach((freq, index) => {
-        if (!this.audioCtx) return;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, now + index * 0.08);
@@ -187,28 +364,27 @@ class AudioService {
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
         osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
+        gain.connect(ctx.destination);
 
         osc.start(startTime);
         osc.stop(startTime + duration);
       });
     } catch {
-      // AudioContext policy
+      // audio policy
     }
   }
 
   public playWrong() {
     if (!this.soundEnabled) return;
     try {
-      this.initAudioContext();
-      if (!this.audioCtx) return;
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
 
-      const now = this.audioCtx.currentTime;
-      const osc = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
-      // Gentle soft boing down
       osc.frequency.setValueAtTime(260, now);
       osc.frequency.exponentialRampToValueAtTime(140, now + 0.35);
 
@@ -216,28 +392,27 @@ class AudioService {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
       osc.connect(gain);
-      gain.connect(this.audioCtx.destination);
+      gain.connect(ctx.destination);
 
       osc.start(now);
       osc.stop(now + 0.36);
     } catch {
-      // AudioContext policy
+      // audio policy
     }
   }
 
   public playStar() {
     if (!this.soundEnabled) return;
     try {
-      this.initAudioContext();
-      if (!this.audioCtx) return;
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
 
-      const now = this.audioCtx.currentTime;
+      const now = ctx.currentTime;
       const notes = [880, 1174.66, 1318.51, 1760];
 
       notes.forEach((freq, idx) => {
-        if (!this.audioCtx) return;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, now + idx * 0.06);
@@ -247,24 +422,23 @@ class AudioService {
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
 
         osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
+        gain.connect(ctx.destination);
 
         osc.start(startTime);
         osc.stop(startTime + 0.26);
       });
     } catch {
-      // AudioContext policy
+      // audio policy
     }
   }
 
   public playLevelUp() {
     if (!this.soundEnabled) return;
     try {
-      this.initAudioContext();
-      if (!this.audioCtx) return;
+      const ctx = this.ensureAudioContextRunning();
+      if (!ctx) return;
 
-      const now = this.audioCtx.currentTime;
-      // Grand celebratory fanfare: C5, G5, C6, E6, G6
+      const now = ctx.currentTime;
       const fanfare = [
         { f: 523.25, time: 0, dur: 0.15 },
         { f: 659.25, time: 0.15, dur: 0.15 },
@@ -273,9 +447,8 @@ class AudioService {
       ];
 
       fanfare.forEach((note) => {
-        if (!this.audioCtx) return;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(note.f, now + note.time);
@@ -286,15 +459,24 @@ class AudioService {
         gain.gain.exponentialRampToValueAtTime(0.001, st + note.dur);
 
         osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
+        gain.connect(ctx.destination);
 
         osc.start(st);
         osc.stop(st + note.dur);
       });
     } catch {
-      // AudioContext policy
+      // audio policy
     }
+  }
+
+  /**
+   * Sound button test function: plays instant chime and speaks Arabic voice test
+   */
+  public playSoundButtonTest() {
+    this.playCorrect();
+    this.speakArabic('أهلاً بك يا بطل! الصوت يعمل بشكل ممتاز وجاهز لتعليمك الحروف والأرقام.');
   }
 }
 
 export const audioService = new AudioService();
+

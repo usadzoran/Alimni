@@ -19,7 +19,7 @@ export const MascotGuide: React.FC<MascotGuideProps> = ({
   const handleMascotClick = () => {
     setIsWiggling(true);
     setTimeout(() => setIsWiggling(false), 600);
-    audioService.playTap();
+    audioService.playChime();
     audioService.speakArabic(message);
   };
 

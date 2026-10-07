@@ -314,7 +314,10 @@ export const LevelsRoadmapView: React.FC<LevelsRoadmapViewProps> = ({
                 </h3>
 
                 <button
-                  onClick={() => audioService.speakArabic(examQuestions[currentQIndex]?.audioPrompt || '')}
+                  onClick={() => {
+                    audioService.playChime();
+                    audioService.speakArabic(examQuestions[currentQIndex]?.audioPrompt || '');
+                  }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-colors cursor-pointer"
                 >
                   <Volume2 className="w-4 h-4" />

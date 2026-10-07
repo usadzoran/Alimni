@@ -675,7 +675,10 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
 
           {/* Sound trigger */}
           <button
-            onClick={() => audioService.speakArabic(`حرف الـ${g1Target.name}`)}
+            onClick={() => {
+              audioService.playChime();
+              audioService.speakArabic(`حرف الـ${g1Target.name}`);
+            }}
             className="w-24 h-24 mx-auto rounded-3xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center text-4xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <Volume2 className="w-12 h-12" />
@@ -996,7 +999,10 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
           </div>
 
           <button
-            onClick={() => audioService.speakArabic(`الرقم: ${getArabicNumberName(g6Target)}`)}
+            onClick={() => {
+              audioService.playChime();
+              audioService.speakArabic(`الرقم: ${getArabicNumberName(g6Target)}`);
+            }}
             className="w-24 h-24 mx-auto rounded-3xl bg-cyan-600 hover:bg-cyan-700 text-white flex items-center justify-center text-4xl shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             <Volume2 className="w-12 h-12" />
@@ -1234,7 +1240,7 @@ export const GamesHub: React.FC<GamesHubProps> = ({ child, initialGameId, onBack
 
                   <button
                     onClick={() => {
-                      audioService.playTap();
+                      audioService.playChime();
                       audioService.speakArabic(`حرف الـ${letter.name}.. ${letter.example.wordTashkeel}`);
                     }}
                     className="p-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white transition-colors cursor-pointer"

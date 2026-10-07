@@ -1,37 +1,79 @@
-import React, { useState } from 'react';
-import { Volume2, VolumeX, Shield, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, ClipboardCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, Shield, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, Check } from 'lucide-react';
 import { ChildProfile } from '../types';
 import { audioService } from '../services/audioService';
+import { storageService } from '../services/storageService';
 
 interface HeaderProps {
   activeChild?: ChildProfile;
-  audienceMode: 'kids' | 'adults';
-  onAudienceModeChange: (mode: 'kids' | 'adults') => void;
-  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin';
-  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
+  activeTab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin';
+  onSelectTab: (tab: 'home' | 'letters' | 'numbers' | 'games' | 'levels' | 'rewards' | 'parent' | 'admin') => void;
   onOpenParentLock: () => void;
   onOpenProfilePicker: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeChild,
-  audienceMode,
-  onAudienceModeChange,
   activeTab,
   onSelectTab,
   onOpenParentLock,
   onOpenProfilePicker,
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(audioService.isSoundEnabled());
+  const [soundToast, setSoundToast] = useState<string | null>(null);
 
-  const toggleSound = () => {
+  useEffect(() => {
+    // Sync initial state with storage
+    const settings = storageService.getSettings();
+    if (typeof settings.soundEnabled === 'boolean') {
+      setSoundEnabled(settings.soundEnabled);
+      audioService.setSoundEnabled(settings.soundEnabled);
+    }
+  }, []);
+
+  const handleSoundToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    audioService.unlockAudio();
+
+    if (!soundEnabled) {
+      // Turn sound ON
+      setSoundEnabled(true);
+      audioService.setSoundEnabled(true);
+      storageService.updateSettings({ soundEnabled: true });
+      audioService.playCorrect();
+      audioService.speakArabic('تم تشغيل الصوت بنجاح!');
+      setSoundToast('🔊 تم تفعيل الصوت بنجاح');
+    } else {
+      // Toggle to sound test OR mute
+      // If user clicks, play the audio test first!
+      audioService.playSoundButtonTest();
+      setSoundToast('🔊 الصوت يعمل بشكل ممتاز!');
+    }
+
+    setTimeout(() => {
+      setSoundToast(null);
+    }, 3500);
+  };
+
+  const handleMuteToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const newState = !soundEnabled;
     setSoundEnabled(newState);
     audioService.setSoundEnabled(newState);
+    storageService.updateSettings({ soundEnabled: newState });
+
     if (newState) {
-      audioService.playTap();
+      audioService.playCorrect();
       audioService.speakArabic('تم تشغيل الصوت');
+      setSoundToast('🔊 تم تشغيل الصوت');
+    } else {
+      audioService.stopAll();
+      setSoundToast('🔇 تم كتم الصوت');
     }
+
+    setTimeout(() => {
+      setSoundToast(null);
+    }, 2500);
   };
 
   return (
@@ -57,30 +99,6 @@ export const Header: React.FC<HeaderProps> = ({
                 مغامرات ممتعة للأذكياء الصغار
               </span>
             </div>
-          </button>
-        </div>
-
-        {/* Audience switcher: keep the experience obvious for both audiences */}
-        <div className="hidden md:flex items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
-          <button
-            type="button"
-            onClick={() => onAudienceModeChange('kids')}
-            aria-pressed={audienceMode === 'kids'}
-            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all ${
-              audienceMode === 'kids' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            🧒 للصغار
-          </button>
-          <button
-            type="button"
-            onClick={() => onAudienceModeChange('adults')}
-            aria-pressed={audienceMode === 'adults'}
-            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all ${
-              audienceMode === 'adults' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            👨‍👩‍👧 للكبار
           </button>
         </div>
 
@@ -149,36 +167,6 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => {
               audioService.playTap();
-              onSelectTab('practice');
-            }}
-            className={`px-3 py-1.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
-              activeTab === 'practice'
-                ? 'bg-fuchsia-500 text-white shadow-xs scale-102'
-                : 'text-slate-600 hover:text-fuchsia-600'
-            }`}
-          >
-            <ClipboardCheck className="w-4 h-4" />
-            <span>اختبر نفسك</span>
-          </button>
-
-          <button
-            onClick={() => {
-              audioService.playTap();
-              onSelectTab('stories');
-            }}
-            className={`px-3 py-1.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
-              activeTab === 'stories'
-                ? 'bg-orange-500 text-white shadow-xs scale-102'
-                : 'text-slate-600 hover:text-orange-600'
-            }`}
-          >
-            <span>📖</span>
-            <span>قصص وأناشيد</span>
-          </button>
-
-          <button
-            onClick={() => {
-              audioService.playTap();
               onSelectTab('levels');
             }}
             className={`px-3 py-1.5 rounded-xl font-bold text-sm transition-all flex items-center gap-1.5 ${
@@ -209,29 +197,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action & Child Zone */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
-          <div className="flex md:hidden items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5">
-            <button
-              type="button"
-              onClick={() => onAudienceModeChange('kids')}
-              aria-label="واجهة الصغار"
-              className={`rounded-lg px-1.5 py-1 text-[10px] font-black ${
-                audienceMode === 'kids' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-400'
-              }`}
-            >
-              🧒
-            </button>
-            <button
-              type="button"
-              onClick={() => onAudienceModeChange('adults')}
-              aria-label="واجهة الكبار"
-              className={`rounded-lg px-1.5 py-1 text-[10px] font-black ${
-                audienceMode === 'adults' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400'
-              }`}
-            >
-              👨‍👩‍👧
-            </button>
-          </div>
-
           {/* Child Profile Capsule */}
           {activeChild && (
             <button
@@ -262,18 +227,48 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="tabular-nums font-bold">{activeChild?.stars ?? 0}</span>
           </div>
 
-          {/* Sound Toggle */}
-          <button
-            onClick={toggleSound}
-            title={soundEnabled ? 'كتم الصوت' : 'تشغيل الصوت'}
-            className={`p-1.5 sm:p-2 rounded-2xl border transition-all cursor-pointer ${
-              soundEnabled
-                ? 'bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100'
-                : 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200'
-            }`}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
+          {/* Sound Controls with Instant Test and Feedback */}
+          <div className="relative flex items-center">
+            <button
+              onClick={handleSoundToggle}
+              title={soundEnabled ? 'انقر لتجربة وفحص الصوت' : 'انقر لتفعيل الصوت'}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+                soundEnabled
+                  ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 shadow-xs active:scale-95'
+                  : 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 active:scale-95'
+              }`}
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 animate-pulse" />
+                  <span className="text-[11px] font-black hidden md:inline">الصوت</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" />
+                  <span className="text-[11px] font-black hidden md:inline">مكتوم</span>
+                </>
+              )}
+            </button>
+
+            {/* Quick Mute mini button */}
+            {soundEnabled && (
+              <button
+                onClick={handleMuteToggle}
+                title="كتم الصوت تماماً"
+                className="mr-1 p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+              >
+                <VolumeX className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Floating Sound Status Toast */}
+            {soundToast && (
+              <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 z-50 bg-slate-900 text-white text-xs font-bold py-1.5 px-3 rounded-xl shadow-lg border border-slate-700 whitespace-nowrap animate-fade-in pointer-events-none">
+                {soundToast}
+              </div>
+            )}
+          </div>
 
           {/* Parent Zone Access */}
           <button

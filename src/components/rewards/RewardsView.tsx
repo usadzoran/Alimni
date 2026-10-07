@@ -80,7 +80,7 @@ export const RewardsView: React.FC<RewardsViewProps> = ({ child }) => {
                   {isUnlocked ? (
                     <button
                       onClick={() => {
-                        audioService.playTap();
+                        audioService.playChime();
                         audioService.speakArabic(mascot.quote);
                       }}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-100/70 hover:bg-amber-200 px-2.5 py-1 rounded-xl transition-colors cursor-pointer"

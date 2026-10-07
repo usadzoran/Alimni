@@ -26,7 +26,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   const handleTestAudio = (text: string) => {
-    audioService.playTap();
+    audioService.playChime();
     setTestStatus(`جارٍ تشغيل النطق: ${text}`);
     audioService.speakArabic(text, {
       onEnd: () => setTestStatus('اكتمل تشغيل الصوت بنجاح ✓'),
