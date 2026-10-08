@@ -1,4 +1,5 @@
 export type AgeGroup = '3-4' | '5-6';
+export type LearningTrack = '2-4' | '5-7';
 
 export interface LetterShape {
   isolated: string; // منفصل
@@ -69,6 +70,7 @@ export interface ChildProfile {
   age?: number;
   ageGroup: AgeGroup;
   gradeLevel?: string;
+  learningTrack?: LearningTrack;
   currentLevelId: number; // 1 to 6
   stars: number;
   unlockedCharacters: string[]; // mascot IDs

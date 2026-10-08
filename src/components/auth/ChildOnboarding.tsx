@@ -43,8 +43,8 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
       setError('أكمل جميع البيانات للمتابعة.');
       return;
     }
-    if (!Number.isInteger(ageValue) || ageValue < 3 || ageValue > 18) {
-      setError('أدخل عمرًا صحيحًا بين 3 و18 سنة.');
+    if (!Number.isInteger(ageValue) || ageValue < 2 || ageValue > 7) {
+      setError('أدخل عمرًا صحيحًا بين سنتين و7 سنوات.');
       return;
     }
 
@@ -121,8 +121,8 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
                   id="child-age"
                   type="number"
                   inputMode="numeric"
-                  min={3}
-                  max={18}
+                  min={2}
+                  max={7}
                   step={1}
                   required
                   value={age}
@@ -131,7 +131,7 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
                   className="w-full rounded-xl border-2 border-slate-200 bg-white py-3 pr-10 pl-3 text-sm font-semibold outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-400">من 3 إلى 18 سنة</p>
+              <p className="mt-1 text-xs text-slate-400">من سنتين إلى 7 سنوات</p>
             </div>
             <div>
               <label htmlFor="child-grade" className="mb-1.5 block text-sm font-bold text-slate-700">المستوى الدراسي</label>
@@ -159,7 +159,7 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
             type="submit"
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 px-5 py-3.5 text-base font-black text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
           >
-            <span>احفظ البيانات وابدأ التعلّم</span>
+            <span>احفظ البيانات واختر الفئة</span>
             <ArrowLeft className="h-5 w-5" />
           </button>
           <p className="text-center text-xs leading-5 text-slate-400">هذه الخطوة مطلوبة لإعداد ملف الطفل قبل دخول عالم الحروف والأرقام.</p>

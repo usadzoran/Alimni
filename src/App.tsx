@@ -11,9 +11,11 @@ import { RewardsView } from './components/rewards/RewardsView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
 import { ChildOnboarding } from './components/auth/ChildOnboarding';
+import { AgeGroupSelection, FutureGroupPage } from './components/auth/AgeGroupFlow';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
+import { LearningTrack } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<
@@ -62,6 +64,26 @@ export default function App() {
       <ChildOnboarding
         child={currentChild}
         onComplete={() => setChild(storageService.getActiveChild())}
+      />
+    );
+  }
+
+  const childFullName = [currentChild.name, currentChild.lastName].filter(Boolean).join(' ');
+
+  if (!currentChild.learningTrack) {
+    return (
+      <AgeGroupSelection
+        childName={childFullName}
+        onSelectGroup={(group: LearningTrack) => storageService.updateChild(currentChild.id, { learningTrack: group })}
+      />
+    );
+  }
+
+  if (currentChild.learningTrack === '5-7') {
+    return (
+      <FutureGroupPage
+        childName={childFullName}
+        onBack={() => storageService.updateChild(currentChild.id, { learningTrack: undefined })}
       />
     );
   }
