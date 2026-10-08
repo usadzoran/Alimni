@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, CheckCircle2, Hash, Languages, Lightbulb, RotateCcw, Sparkles, Target, Volume2 } from 'lucide-react';
 import { LearningTrack } from '../../types';
+import { AGE_PROFILES } from '../../data/ageGroupExercises';
 
 interface AgeGroupSelectionProps {
   childName: string;
@@ -17,17 +18,6 @@ interface ExerciseQuestion {
   prompt: string;
   options: string[];
   answer: number;
-}
-
-interface AgeDifficultyProfile {
-  age: number;
-  arabicChallenge: string;
-  arabicExercises: string;
-  englishFocus: string;
-  lessonLoad: string;
-  sampleArabicQuestion: string;
-  arabicQuestions: ExerciseQuestion[];
-  englishQuestions: ExerciseQuestion[];
 }
 
 const LEARNING_PATHS = [
@@ -60,63 +50,6 @@ const LEARNING_PATHS = [
     title: 'التفكير والانتباه',
     color: 'text-emerald-700 bg-emerald-50 border-emerald-100',
     topics: ['المطابقة والذاكرة والتصنيف', 'إكمال الأنماط والتسلسل', 'الألغاز والعلاقات المكانية'],
-  },
-];
-
-const AGE_PROFILES: AgeDifficultyProfile[] = [
-  {
-    age: 5,
-    arabicChallenge: 'قراءة كلمات قصيرة مشكولة، تمييز مواضع الحروف والحركات، ترتيب 3 كلمات، والإجابة عن سؤال فهم مباشر.',
-    arabicExercises: '٥–٦ أسئلة قصيرة في الدرس، مع مثال صوتي وتلميح عند الحاجة.',
-    englishFocus: 'بداية هادئة: التعرف إلى الحروف الكبيرة والصغيرة، أصوات أولية، الأرقام 0–10، وكلمات مصورة.',
-    lessonLoad: '٣–٥ أسئلة إنجليزية بسيطة؛ مطابقة واختيار واستماع، بلا قواعد أو قراءة طويلة.',
-    sampleArabicQuestion: 'اقرأ «سَمَكَةٌ» ثم اختر الحرف الذي تبدأ به الكلمة.',
-    arabicQuestions: [
-      { prompt: 'أي كلمة تبدأ بحرف «س»؟', options: ['سَمَكٌ', 'قَمَرٌ', 'بَابٌ'], answer: 0 },
-      { prompt: 'ما الحركة على حرف الباء في «بُرتقال»؟', options: ['ضمة', 'فتحة', 'كسرة'], answer: 0 },
-      { prompt: 'اختر الكلمة التي فيها حرف «م» في أولها.', options: ['مَوْزٌ', 'وَرْدٌ', 'بَيْتٌ'], answer: 0 },
-    ],
-    englishQuestions: [
-      { prompt: 'Which one is the letter A?', options: ['A', 'B', 'T'], answer: 0 },
-      { prompt: 'Match the big letter B with the small letter.', options: ['b', 'd', 'p'], answer: 0 },
-      { prompt: 'Count the stars: ⭐ ⭐ ⭐', options: ['2', '3', '5'], answer: 1 },
-    ],
-  },
-  {
-    age: 6,
-    arabicChallenge: 'قراءة جملة قصيرة مشكولة، إكمال حرف ناقص، ترتيب الكلمات، واستخراج معلومة من فقرة من جملتين.',
-    arabicExercises: '٧–٨ أسئلة، بينها سؤال قراءة وفهم وسؤال إملاء أو تركيب كلمات.',
-    englishFocus: 'تثبيت A–Z الكبير والصغير، سماع أصوات الحروف الأولى، الأرقام 0–20 وكلمات قصيرة مصورة مثل sun وcat.',
-    lessonLoad: '٤–٥ أسئلة إنجليزية قصيرة؛ حرف/صوت/رقم/كلمة مصورة، دون قواعد متقدمة.',
-    sampleArabicQuestion: 'اقرأ «ذَهَبَ سامرٌ إلى الحديقة» ثم أجب: أين ذهب سامر؟',
-    arabicQuestions: [
-      { prompt: 'أكمل الكلمة: مَكْتَـ...ة', options: ['ب', 'س', 'ر'], answer: 0 },
-      { prompt: 'رتّب الكلمات: «في الحديقة / لعبَ / سامرٌ»', options: ['لعبَ سامرٌ في الحديقة', 'في لعبَ سامرٌ الحديقة', 'الحديقة سامرٌ لعبَ في'], answer: 0 },
-      { prompt: 'قرأَت ليلى قصةً ثم حكتها لأختها. ماذا قرأت ليلى؟', options: ['قصةً', 'رسالةً', 'خريطةً'], answer: 0 },
-    ],
-    englishQuestions: [
-      { prompt: 'Which picture word starts with the sound /s/?', options: ['sun', 'cat', 'ball'], answer: 0 },
-      { prompt: 'What number comes after 9?', options: ['8', '10', '12'], answer: 1 },
-      { prompt: 'Choose the small letter for M.', options: ['m', 'n', 'w'], answer: 0 },
-    ],
-  },
-  {
-    age: 7,
-    arabicChallenge: 'قراءة فقرة قصيرة، فهم السبب والنتيجة، إملاء كلمة، تكوين جملة، وسؤال رياضي لفظي من خطوتين بحسب الاستعداد.',
-    arabicExercises: '٨–١٠ أسئلة، مع تحدٍ مركب واحد يمكن حله على مراحل ومن دون مؤقت إلزامي.',
-    englishFocus: 'تبقى الإنجليزية تأسيسية: مراجعة الحروف والأصوات، الأرقام 0–20، مفردات شائعة وعبارات قصيرة جدًا.',
-    lessonLoad: '٤–٦ أسئلة إنجليزية سهلة؛ اختيار الحرف الأول، مطابقة كلمة بصورة، أو ربط العدد بكلمته.',
-    sampleArabicQuestion: 'اقرأ فقرة قصيرة ثم أجب عن سؤال «لماذا؟» واستدل من النص.',
-    arabicQuestions: [
-      { prompt: 'زرعت مريم بذرتين وسقتهما كل يوم. بعد أيام ظهرت ورقة خضراء. ما الذي ساعد النبتة على النمو؟', options: ['الماء والعناية', 'اللعبة', 'الصندوق'], answer: 0 },
-      { prompt: 'اختر الكلمة المكتوبة كتابة صحيحة.', options: ['مَدْرَسَةٌ', 'مَذْرَسَةٌ', 'مَدْرَسَه'], answer: 0 },
-      { prompt: 'رتّب لتكوين جملة: «إلى المكتبة / بعد الدرس / ذهب / عمر»', options: ['ذهب عمر إلى المكتبة بعد الدرس', 'إلى عمر بعد المكتبة ذهب الدرس', 'بعد المكتبة ذهب الدرس عمر إلى'], answer: 0 },
-    ],
-    englishQuestions: [
-      { prompt: 'Which letter starts the word “cat”?', options: ['C', 'M', 'S'], answer: 0 },
-      { prompt: 'Match the number word “seven”.', options: ['5', '7', '9'], answer: 1 },
-      { prompt: 'Which word names the sun in the picture? ☀️', options: ['sun', 'pen', 'bag'], answer: 0 },
-    ],
   },
 ];
 
@@ -167,12 +100,30 @@ const LEVELS = [
 
 const LessonSteps = ['تهيئة قصيرة', 'هدف واحد واضح', 'عرض صوتي ومرئي', 'تجربة وتحدٍ', 'أسئلة ومراجعة'];
 
-const ExerciseCard: React.FC<{ title: string; subtitle: string; language: 'ar' | 'en'; questions: ExerciseQuestion[] }> = ({ title, subtitle, language, questions }) => {
+const pickSessionQuestions = (bank: ExerciseQuestion[], sessionSize: number) => {
+  const shuffled = [...bank];
+  const count = Math.min(sessionSize, shuffled.length);
+  for (let index = 0; index < count; index += 1) {
+    const selectedIndex = index + Math.floor(Math.random() * (shuffled.length - index));
+    [shuffled[index], shuffled[selectedIndex]] = [shuffled[selectedIndex], shuffled[index]];
+  }
+  return shuffled.slice(0, count);
+};
+
+const ExerciseCard: React.FC<{ title: string; subtitle: string; language: 'ar' | 'en'; questions: ExerciseQuestion[]; sessionSize: number }> = ({ title, subtitle, language, questions, sessionSize }) => {
+  const [sessionQuestions, setSessionQuestions] = useState(() => pickSessionQuestions(questions, sessionSize));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const question = questions[questionIndex];
+  const question = sessionQuestions[questionIndex];
   const isEnglish = language === 'en';
+
+  useEffect(() => {
+    setSessionQuestions(pickSessionQuestions(questions, sessionSize));
+    setQuestionIndex(0);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+  }, [questions, sessionSize]);
 
   const resetQuestion = () => {
     setSelectedAnswer(null);
@@ -182,9 +133,9 @@ const ExerciseCard: React.FC<{ title: string; subtitle: string; language: 'ar' |
   if (!question) {
     return (
       <article className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-        <h3 className="font-black text-emerald-900">أحسنت! أكملت التمرين</h3>
-        <p className="mt-2 text-sm text-emerald-800">جرّب القسم الآخر أو أعد هذا التحدي.</p>
-        <button type="button" onClick={() => { setQuestionIndex(0); resetQuestion(); }} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
+        <h3 className="font-black text-emerald-900">أحسنت! أكملت هذه الجولة</h3>
+        <p className="mt-2 text-sm text-emerald-800">يمكنك بدء جولة جديدة بأسئلة مختلفة من البنك.</p>
+        <button type="button" onClick={() => { setSessionQuestions(pickSessionQuestions(questions, sessionSize)); setQuestionIndex(0); resetQuestion(); }} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">
           <RotateCcw className="h-4 w-4" /> أعد التحدي
         </button>
       </article>
@@ -209,7 +160,7 @@ const ExerciseCard: React.FC<{ title: string; subtitle: string; language: 'ar' |
           <h3 className={`font-black ${isEnglish ? 'text-blue-900' : 'text-amber-900'}`}>{title}</h3>
           <p className="mt-1 text-xs leading-5 text-slate-500">{subtitle}</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-bold ${isEnglish ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'}`}>{questionIndex + 1} / {questions.length}</span>
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${isEnglish ? 'bg-blue-50 text-blue-800' : 'bg-amber-50 text-amber-800'}`}>الجولة {questionIndex + 1}/{sessionQuestions.length} · بنك {questions.length}</span>
       </div>
       <p lang={isEnglish ? 'en' : 'ar'} dir={isEnglish ? 'ltr' : 'rtl'} className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-bold leading-7 text-slate-800">{question.prompt}</p>
       <div className="mt-3 grid gap-2">
@@ -301,7 +252,9 @@ export const FutureGroupPage: React.FC<FutureGroupPageProps> = ({ childName, chi
                 <div className="flex items-center justify-between gap-3"><h3 className="font-black text-slate-900">عمر {profile.age} سنوات</h3>{childAge === profile.age && <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-800">ملف الطفل</span>}</div>
                 <div className="mt-4 space-y-4 text-sm leading-6">
                   <div><p className="font-black text-amber-800">تحدي العربية</p><p className="mt-1 text-slate-600">{profile.arabicChallenge}</p><p className="mt-1 text-xs font-bold text-slate-500">{profile.arabicExercises}</p></div>
+                  <div><p className="font-black text-sky-800">تحدي الرياضيات</p><p className="mt-1 text-slate-600">{profile.mathChallenge}</p><p className="mt-1 text-xs font-bold text-slate-500">{profile.mathExercises}</p></div>
                   <div><p className="font-black text-blue-800">English — تأسيس</p><p className="mt-1 text-slate-600">{profile.englishFocus}</p><p className="mt-1 text-xs font-bold text-slate-500">{profile.lessonLoad}</p></div>
+                  <p className="rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-700">حجم البنك: {profile.arabicQuestions.length} عربي · {profile.mathQuestions.length} رياضيات · {profile.englishQuestions.length} إنجليزي</p>
                   <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-700"><strong>مثال سؤال عربي:</strong> {profile.sampleArabicQuestion}</p>
                 </div>
               </article>
@@ -312,10 +265,11 @@ export const FutureGroupPage: React.FC<FutureGroupPageProps> = ({ childName, chi
 
         {ageProfile && (
           <section aria-labelledby="practice-title">
-            <div className="mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-emerald-600" /><div><h2 id="practice-title" className="text-xl font-black text-slate-900">جرّب أسئلة مناسبة لعمر {childAge}</h2><p className="mt-1 text-sm text-slate-500">نماذج تفاعلية أولية؛ أكمل السؤال صحيحًا للانتقال إلى الذي يليه.</p></div></div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <ExerciseCard title="تحدي اللغة العربية" subtitle={ageProfile.arabicExercises} language="ar" questions={ageProfile.arabicQuestions} />
-              <ExerciseCard title="English — First Steps" subtitle={ageProfile.lessonLoad} language="en" questions={ageProfile.englishQuestions} />
+            <div className="mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-emerald-600" /><div><h2 id="practice-title" className="text-xl font-black text-slate-900">تحديات متعددة لعمر {childAge}</h2><p className="mt-1 text-sm text-slate-500">كل جولة تختار أسئلة مختلفة من بنك العمر؛ لا مؤقت ولا عقوبة عند الخطأ.</p></div></div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <ExerciseCard title="تحدي اللغة العربية" subtitle={ageProfile.arabicExercises} language="ar" questions={ageProfile.arabicQuestions} sessionSize={ageProfile.arabicSessionSize} />
+              <ExerciseCard title="تحدي الرياضيات" subtitle={ageProfile.mathExercises} language="ar" questions={ageProfile.mathQuestions} sessionSize={ageProfile.mathSessionSize} />
+              <ExerciseCard title="English — First Steps" subtitle={ageProfile.lessonLoad} language="en" questions={ageProfile.englishQuestions} sessionSize={ageProfile.englishSessionSize} />
             </div>
           </section>
         )}
