@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AGE_PROFILES, type ExerciseQuestion } from '../../data/ageGroupExercises';
+import { storageService } from '../../services/storageService';
 import {
   LEARNING_JOURNEY,
   LEARNING_SUBJECTS,
@@ -95,6 +96,13 @@ const resolveHashRoute = (hash: string): LearningRoute => {
 const findLesson = (subjectId: SubjectId, lessonId: string): LearningLesson | undefined =>
   LESSONS_BY_SUBJECT[subjectId].find((lesson) => lesson.id === lessonId);
 
+const AGE57_COMPLETION_PREFIX = 'age57:';
+const getAge57CompletedIds = (): Set<string> => new Set(
+  storageService.getActiveChild().completedLessons
+    .filter((id) => id.startsWith(AGE57_COMPLETION_PREFIX))
+    .map((id) => id.slice(AGE57_COMPLETION_PREFIX.length)),
+);
+
 const getExerciseSet = (age: number, bank: ExerciseBankId, questionCategory?: LearningLesson['questionCategory']) => {
   const profile = AGE_PROFILES.find((item) => item.age === age);
   if (!profile) return undefined;
@@ -159,9 +167,10 @@ const DashboardPage: React.FC<{
   childName: string;
   age: number;
   completedCount: number;
+  stars: number;
   onOpenSubject: (subjectId: SubjectId) => void;
   onOpenLesson: (location: LessonLocation) => void;
-}> = ({ childName, age, completedCount, onOpenSubject, onOpenLesson }) => {
+}> = ({ childName, age, completedCount, stars, onOpenSubject, onOpenLesson }) => {
   const allLessons = Object.values(LESSONS_BY_SUBJECT).reduce((count, lessons) => count + lessons.length, 0);
   const firstLesson = { subjectId: 'arabic' as const, lessonId: 'letters' };
   const firstName = childName.split(' ')[0];
@@ -178,7 +187,7 @@ const DashboardPage: React.FC<{
             <p className="mt-3 max-w-xl text-sm leading-6 text-blue-50 sm:text-base">اختر مادة، افتح درسًا قصيرًا، ثم جرّب تحدّيًا مناسبًا لعمرك. كل خطوة تقرّبك من نجمة جديدة.</p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <PrimaryButton onClick={() => onOpenLesson(firstLesson)} theme="amber" icon={ArrowLeft}>ابدأ أول مغامرة</PrimaryButton>
-              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-50"><Star className="h-4 w-4 fill-yellow-300 text-yellow-300" /> {completedCount} نجوم في هذه الجلسة</span>
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-50"><Star className="h-4 w-4 fill-yellow-300 text-yellow-300" /> {stars} نجوم في رصيدك</span>
             </div>
           </div>
           <div className="hidden h-36 w-36 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 text-7xl shadow-inner md:flex" aria-hidden="true">🚀</div>
@@ -325,7 +334,7 @@ const ExercisePage: React.FC<{
   subject: LearningSubject;
   age: number;
   onBackToLesson: () => void;
-  onComplete: () => void;
+  onComplete: (result: { totalQuestions: number; correctAnswers: number }) => void;
   onOpenNext?: () => void;
 }> = ({ lesson, subject, age, onBackToLesson, onComplete, onOpenNext }) => {
   const theme = THEME_STYLES[subject.theme];
@@ -335,6 +344,7 @@ const ExercisePage: React.FC<{
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [finished, setFinished] = useState(false);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
   const question = sessionQuestions[questionIndex];
   const isEnglish = exerciseSet?.language === 'en';
 
@@ -345,6 +355,7 @@ const ExercisePage: React.FC<{
     setSelectedAnswer(null);
     setIsCorrect(null);
     setFinished(false);
+    setCorrectAnswers(0);
   };
 
   const chooseAnswer = (index: number) => {
@@ -354,11 +365,13 @@ const ExercisePage: React.FC<{
   };
 
   const nextQuestion = () => {
+    if (isCorrect !== true) return;
     if (questionIndex + 1 >= sessionQuestions.length) {
       setFinished(true);
-      onComplete();
+      onComplete({ totalQuestions: sessionQuestions.length, correctAnswers: correctAnswers + 1 });
       return;
     }
+    setCorrectAnswers((count) => count + 1);
     setQuestionIndex((current) => current + 1);
     setSelectedAnswer(null);
     setIsCorrect(null);
@@ -423,7 +436,16 @@ const ExercisePage: React.FC<{
 
 export const AgeGroupLearningExperience: React.FC<AgeGroupLearningExperienceProps> = ({ childName, childAge, onBack }) => {
   const [route, setRoute] = useState<LearningRoute>(() => resolveHashRoute(window.location.hash));
-  const [completedIds, setCompletedIds] = useState<Set<string>>(() => new Set());
+  const [completedIds, setCompletedIds] = useState<Set<string>>(getAge57CompletedIds);
+  const [stars, setStars] = useState(() => storageService.getActiveChild().stars);
+
+  useEffect(() => {
+    const syncProgress = () => {
+      setCompletedIds(getAge57CompletedIds());
+      setStars(storageService.getActiveChild().stars);
+    };
+    return storageService.subscribe(syncProgress);
+  }, []);
 
   useEffect(() => {
     const syncFromAddress = () => setRoute(resolveHashRoute(window.location.hash));
@@ -457,6 +479,12 @@ export const AgeGroupLearningExperience: React.FC<AgeGroupLearningExperienceProp
     onBack();
   };
 
+  const completeLesson = (subjectId: SubjectId, lessonId: string) => {
+    const lessonKey = `${subjectId}/${lessonId}`;
+    storageService.markLessonComplete(`${AGE57_COMPLETION_PREFIX}${lessonKey}`, 1);
+    setCompletedIds((previous) => new Set(previous).add(lessonKey));
+  };
+
   const subjectId = route.screen === 'home' ? undefined : route.subjectId;
   const subject = subjectId ? LEARNING_SUBJECTS.find((item) => item.id === subjectId) : undefined;
   const lesson = route.screen === 'lesson' || route.screen === 'exercise' ? findLesson(route.subjectId, route.lessonId) : undefined;
@@ -483,13 +511,13 @@ export const AgeGroupLearningExperience: React.FC<AgeGroupLearningExperienceProp
           onChangeGroup={backToAgeGroups}
         />
 
-        {route.screen === 'home' && <DashboardPage childName={childName} age={childAge} completedCount={completedCount} onOpenSubject={(id) => navigate({ screen: 'subject', subjectId: id })} onOpenLesson={(location) => navigate({ screen: 'lesson', ...location })} />}
+        {route.screen === 'home' && <DashboardPage childName={childName} age={childAge} completedCount={completedCount} stars={stars} onOpenSubject={(id) => navigate({ screen: 'subject', subjectId: id })} onOpenLesson={(location) => navigate({ screen: 'lesson', ...location })} />}
 
         {route.screen === 'subject' && subject && <SubjectPage subject={subject} completedIds={completedIds} onOpenLesson={(lessonId) => navigate({ screen: 'lesson', subjectId: subject.id, lessonId })} />}
 
         {route.screen === 'lesson' && subject && lesson && <LessonPage subject={subject} lesson={lesson} age={childAge} completed={completedIds.has(`${subject.id}/${lesson.id}`)} nextLesson={nextLesson} onStartExercise={() => navigate({ screen: 'exercise', subjectId: subject.id, lessonId: lesson.id })} onOpenNext={() => { if (nextLesson) navigate({ screen: 'lesson', subjectId: subject.id, lessonId: nextLesson.id }); }} />}
 
-        {route.screen === 'exercise' && subject && lesson && <ExercisePage key={`${subject.id}/${lesson.id}`} subject={subject} lesson={lesson} age={childAge} onBackToLesson={() => goBackTo({ screen: 'lesson', subjectId: subject.id, lessonId: lesson.id })} onComplete={() => setCompletedIds((previous) => new Set(previous).add(`${subject.id}/${lesson.id}`))} onOpenNext={nextLesson ? () => navigate({ screen: 'lesson', subjectId: subject.id, lessonId: nextLesson.id }) : undefined} />}
+        {route.screen === 'exercise' && subject && lesson && <ExercisePage key={`${subject.id}/${lesson.id}`} subject={subject} lesson={lesson} age={childAge} onBackToLesson={() => goBackTo({ screen: 'lesson', subjectId: subject.id, lessonId: lesson.id })} onComplete={(result) => { completeLesson(subject.id, lesson.id); storageService.recordQuizAttempt({ category: 'game', title: `${subject.shortTitle}: ${lesson.title}`, totalQuestions: result.totalQuestions, correctAnswers: result.correctAnswers, scorePercent: result.totalQuestions ? Math.round((result.correctAnswers / result.totalQuestions) * 100) : 0, passed: result.correctAnswers === result.totalQuestions }); }} onOpenNext={nextLesson ? () => navigate({ screen: 'lesson', subjectId: subject.id, lessonId: nextLesson.id }) : undefined} />}
 
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 py-4 text-xs font-medium text-slate-500">
           <span className="inline-flex items-center gap-1.5"><Star className="h-4 w-4 text-amber-500" /> كل محاولة تعلّم جديد</span>

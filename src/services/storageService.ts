@@ -1,6 +1,7 @@
 import { ChildProfile, ParentSettings, QuizAttempt } from '../types';
 import { getSupabaseClient } from '../lib/supabase';
 import { MASCOT_CHARACTERS } from '../data/badgesData';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const DEFAULT_CHILDREN: ChildProfile[] = [
   {
@@ -79,6 +80,7 @@ class StorageService {
   private attempts: QuizAttempt[] = [];
   private settings: ParentSettings = DEFAULT_SETTINGS;
   private listeners: Set<() => void> = new Set();
+  private ensuredParentProfileIds: Set<string> = new Set();
 
   constructor() {
     this.loadFromLocal();
@@ -167,70 +169,264 @@ class StorageService {
 
   // --- Supabase Synchronization ---
 
+  private hasCompleteOnboarding(child: ChildProfile): boolean {
+    return Boolean(child.name.trim() && child.lastName?.trim() && child.age && child.gradeLevel?.trim());
+  }
+
+  private createUuid(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+      const random = Math.floor(Math.random() * 16);
+      return (character === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+    });
+  }
+
+  private ensureDatabaseChildId(child: ChildProfile): ChildProfile {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(child.id)) return child;
+    const index = this.children.findIndex((candidate) => candidate.id === child.id);
+    if (index < 0) return child;
+
+    const previousId = this.children[index].id;
+    const newId = this.createUuid();
+    this.children[index] = { ...this.children[index], id: newId };
+    if (this.activeChildId === previousId) this.activeChildId = newId;
+    this.attempts = this.attempts.map((attempt) => attempt.childId === previousId ? { ...attempt, childId: newId } : attempt);
+    this.saveChildrenToLocal();
+    this.saveAttemptsToLocal();
+    this.notify();
+    return this.children[index];
+  }
+
+  private async ensureSupabaseOwner(supabase: SupabaseClient): Promise<string> {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+
+    let user = sessionData.session?.user;
+    if (!user) {
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      if (!data.user) throw new Error('تعذر إنشاء جلسة حفظ لهذا المتصفح.');
+      user = data.user;
+    }
+    if (!user) throw new Error('تعذر إنشاء جلسة حفظ لهذا المتصفح.');
+
+    if (!this.ensuredParentProfileIds.has(user.id)) {
+      const { error } = await supabase.from('parent_profiles').upsert({
+        id: user.id,
+        email: user.email ?? null,
+        full_name: 'ملف طفل',
+      }, { onConflict: 'id' });
+      if (error) throw error;
+      this.ensuredParentProfileIds.add(user.id);
+    }
+
+    return user.id;
+  }
+
+  private async upsertChildRecord(supabase: SupabaseClient, parentId: string, child: ChildProfile) {
+    if (!this.hasCompleteOnboarding(child)) throw new Error('أكمل بيانات الطفل قبل الحفظ.');
+
+    const { error } = await supabase.from('children').upsert({
+      id: child.id,
+      parent_id: parentId,
+      name: child.name.trim(),
+      last_name: child.lastName!.trim(),
+      avatar: child.avatar,
+      age: child.age,
+      age_group: child.ageGroup,
+      grade_level: child.gradeLevel!.trim(),
+      learning_track: child.learningTrack ?? null,
+      current_level: child.currentLevelId,
+      stars_count: child.stars,
+      total_time_minutes: child.totalTimeMinutes,
+      unlocked_characters: child.unlockedCharacters,
+      mastered_letters: child.masteredLetters,
+      mastered_numbers: child.masteredNumbers,
+      completed_lessons: child.completedLessons,
+      troubled_items: child.troubledItems,
+      last_active: new Date().toISOString(),
+    }, { onConflict: 'id' });
+    if (error) throw error;
+  }
+
   public async syncFromSupabase() {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
     try {
-      // Query children for authenticated user or active session
-      const { data: dbChildren, error } = await supabase.from('children').select('*');
-      if (!error && dbChildren && dbChildren.length > 0) {
-        // Map db fields to ChildProfile
-      const mappedChildren: ChildProfile[] = dbChildren.map((item) => {
-        const localChild = this.children.find((child) => child.id === item.id);
-        return {
-          id: item.id,
-          parentId: item.parent_id,
-          name: item.name,
-          lastName: localChild?.lastName,
-          avatar: item.avatar || '🐰',
-          age: localChild?.age,
-          ageGroup: item.age_group || '3-4',
-          gradeLevel: localChild?.gradeLevel,
-          learningTrack: localChild?.learningTrack,
-          currentLevelId: item.current_level || 1,
-          stars: item.stars_count || 0,
-          unlockedCharacters: ['farfour_rabbit'],
-          masteredLetters: [],
-          masteredNumbers: [],
-          troubledItems: [],
-          completedLessons: [],
-          totalTimeMinutes: item.total_time_minutes || 0,
-          createdAt: item.created_at,
-          lastActive: item.last_active,
-        };
-      });
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const hasSavedLocalChild = this.children.some((child) => this.hasCompleteOnboarding(child));
+      if (!sessionData.session?.user && !hasSavedLocalChild) return;
 
-        this.children = mappedChildren;
-        if (!this.children.some((c) => c.id === this.activeChildId)) {
-          this.activeChildId = this.children[0].id;
+      const parentId = await this.ensureSupabaseOwner(supabase);
+      const { data: dbChildren, error } = await supabase
+        .from('children')
+        .select('id,parent_id,name,last_name,avatar,age,age_group,grade_level,learning_track,current_level,stars_count,total_time_minutes,unlocked_characters,mastered_letters,mastered_numbers,completed_lessons,troubled_items,created_at,last_active')
+        .order('created_at', { ascending: true })
+        .limit(100);
+      if (error) throw error;
+
+      const remoteChildren = (dbChildren ?? []).map((item) => sanitizeChild({
+        id: item.id,
+        parentId: item.parent_id,
+        name: item.name,
+        lastName: item.last_name,
+        avatar: item.avatar,
+        age: item.age,
+        ageGroup: item.age_group,
+        gradeLevel: item.grade_level,
+        learningTrack: item.learning_track,
+        currentLevelId: item.current_level,
+        stars: item.stars_count,
+        totalTimeMinutes: item.total_time_minutes,
+        unlockedCharacters: item.unlocked_characters,
+        masteredLetters: item.mastered_letters,
+        masteredNumbers: item.mastered_numbers,
+        completedLessons: item.completed_lessons,
+        troubledItems: item.troubled_items,
+        createdAt: item.created_at,
+        lastActive: item.last_active,
+      }));
+
+      const localChildrenById = new Map(
+        this.children.filter((child) => this.hasCompleteOnboarding(child)).map((child) => [child.id, child]),
+      );
+      const reconciledChildren: ChildProfile[] = [];
+      for (const remoteChild of remoteChildren) {
+        const localChild = localChildrenById.get(remoteChild.id);
+        if (localChild) {
+          localChildrenById.delete(remoteChild.id);
+          const localUpdatedAt = Date.parse(localChild.lastActive || localChild.createdAt);
+          const remoteUpdatedAt = Date.parse(remoteChild.lastActive || remoteChild.createdAt);
+          if (Number.isFinite(localUpdatedAt) && (!Number.isFinite(remoteUpdatedAt) || localUpdatedAt >= remoteUpdatedAt)) {
+            await this.upsertChildRecord(supabase, parentId, localChild);
+            reconciledChildren.push(sanitizeChild(localChild));
+            continue;
+          }
         }
+        reconciledChildren.push(remoteChild);
+      }
+
+      for (const localChild of localChildrenById.values()) {
+        const databaseChild = this.ensureDatabaseChildId(localChild);
+        await this.upsertChildRecord(supabase, parentId, databaseChild);
+        reconciledChildren.push(sanitizeChild(databaseChild));
+      }
+
+      if (reconciledChildren.length > 0) {
+        this.children = reconciledChildren;
+        if (!this.children.some((child) => child.id === this.activeChildId)) this.activeChildId = this.children[0].id;
         this.saveChildrenToLocal();
         this.notify();
+        await this.syncQuizAttempts(supabase, this.children.map((child) => child.id));
       }
     } catch (err) {
       console.warn('Supabase sync skipped:', err);
     }
   }
 
-  public async pushActiveChildToSupabase() {
-    const child = this.getActiveChild();
+  private async syncQuizAttempts(supabase: SupabaseClient, childIds: string[]) {
+    if (childIds.length === 0) return;
+    const { data, error } = await supabase
+      .from('quiz_attempts')
+      .select('id,child_id,category,title,total_questions,correct_answers,score_percent,passed,created_at')
+      .in('child_id', childIds)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+
+    const remoteAttempts: QuizAttempt[] = (data ?? []).map((item) => ({
+      id: item.id,
+      childId: item.child_id,
+      category: item.category as QuizAttempt['category'],
+      title: item.title,
+      totalQuestions: item.total_questions,
+      correctAnswers: item.correct_answers,
+      scorePercent: item.score_percent,
+      passed: item.passed,
+      timestamp: item.created_at,
+    }));
+    const remoteIds = new Set(remoteAttempts.map((attempt) => attempt.id));
+    const localOnlyAttempts: QuizAttempt[] = [];
+    const retryQueue: QuizAttempt[] = [];
+    for (const attempt of this.attempts.filter((item) => childIds.includes(item.childId) && !remoteIds.has(item.id))) {
+      const stableAttempt = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(attempt.id)
+        ? attempt
+        : { ...attempt, id: this.createUuid() };
+      localOnlyAttempts.push(stableAttempt);
+      retryQueue.push(stableAttempt);
+    }
+    const unrelatedLocalAttempts = this.attempts.filter((attempt) => !childIds.includes(attempt.childId));
+    this.attempts = [...remoteAttempts, ...localOnlyAttempts, ...unrelatedLocalAttempts]
+      .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+      .slice(0, 50);
+    this.saveAttemptsToLocal();
+    await Promise.all(retryQueue.map((attempt) => this.persistQuizAttempt(attempt, true)));
+  }
+
+  public async pushActiveChildToSupabase(): Promise<{ ok: boolean; error?: string }> {
+    let child = this.getActiveChild();
     const supabase = getSupabaseClient();
-    if (!child || !supabase) return;
+    if (!supabase) return { ok: false, error: 'لم يتم إعداد اتصال Supabase.' };
+    if (!this.hasCompleteOnboarding(child)) return { ok: false, error: 'أكمل بيانات الطفل قبل الحفظ.' };
 
     try {
-      await supabase.from('children').upsert({
-        id: child.id,
-        name: child.name,
-        avatar: child.avatar,
-        age_group: child.ageGroup,
-        current_level: child.currentLevelId,
-        stars_count: child.stars,
-        total_time_minutes: child.totalTimeMinutes,
-        last_active: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.warn('Failed to push child to Supabase:', e);
+      const parentId = await this.ensureSupabaseOwner(supabase);
+      child = this.ensureDatabaseChildId(child);
+      await this.upsertChildRecord(supabase, parentId, child);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('Failed to push child to Supabase:', message);
+      return { ok: false, error: message };
+    }
+  }
+
+  public async saveChildOnboarding(id: string, updates: Partial<ChildProfile>): Promise<void> {
+    this.updateChild(id, updates, false);
+    const result = await this.pushActiveChildToSupabase();
+    if (!result.ok) throw new Error(result.error || 'تعذر حفظ ملف الطفل في قاعدة البيانات.');
+  }
+
+  public async saveLearningTrack(id: string, learningTrack: NonNullable<ChildProfile['learningTrack']>): Promise<void> {
+    const index = this.children.findIndex((child) => child.id === id);
+    if (index < 0) throw new Error('ملف الطفل غير موجود.');
+    const previousChild = this.children[index];
+    this.children[index] = { ...previousChild, learningTrack, lastActive: new Date().toISOString() };
+    this.saveChildrenToLocal();
+
+    const result = await this.pushActiveChildToSupabase();
+    if (!result.ok) {
+      this.children[index] = previousChild;
+      this.saveChildrenToLocal();
+      throw new Error(result.error || 'تعذر حفظ المسار المختار.');
+    }
+    this.notify();
+  }
+
+  private async persistQuizAttempt(attempt: QuizAttempt, childAlreadySaved = false) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    try {
+      const parentId = await this.ensureSupabaseOwner(supabase);
+      const child = this.children.find((candidate) => candidate.id === attempt.childId);
+      if (!child) throw new Error('ملف الطفل غير موجود لحفظ نتيجة التمرين.');
+      const databaseChild = this.ensureDatabaseChildId(child);
+      if (!childAlreadySaved) await this.upsertChildRecord(supabase, parentId, databaseChild);
+      const { error } = await supabase.from('quiz_attempts').upsert({
+        id: attempt.id,
+        child_id: databaseChild.id,
+        category: attempt.category,
+        title: attempt.title,
+        total_questions: attempt.totalQuestions,
+        correct_answers: attempt.correctAnswers,
+        score_percent: attempt.scorePercent,
+        passed: attempt.passed,
+      }, { onConflict: 'id', ignoreDuplicates: true });
+      if (error) throw error;
+    } catch (error) {
+      console.warn('Failed to save quiz attempt to Supabase:', error);
     }
   }
 
@@ -283,13 +479,13 @@ class StorageService {
     return newChild;
   }
 
-  public updateChild(id: string, updates: Partial<ChildProfile>) {
+  public updateChild(id: string, updates: Partial<ChildProfile>, syncToSupabase = true) {
     const index = this.children.findIndex((c) => c.id === id);
     if (index !== -1) {
       this.children[index] = { ...this.children[index], ...updates, lastActive: new Date().toISOString() };
       this.saveChildrenToLocal();
       this.notify();
-      this.pushActiveChildToSupabase();
+      if (syncToSupabase && id === this.activeChildId) void this.pushActiveChildToSupabase();
     }
   }
 
@@ -407,12 +603,13 @@ class StorageService {
   }
 
   public recordQuizAttempt(attempt: Omit<QuizAttempt, 'id' | 'childId' | 'timestamp'>) {
-    const child = this.getActiveChild();
-    if (!child) return;
+    const localChild = this.getActiveChild();
+    if (!localChild) return;
+    const child = getSupabaseClient() ? this.ensureDatabaseChildId(localChild) : localChild;
 
     const newAttempt: QuizAttempt = {
       ...attempt,
-      id: `attempt_${Date.now()}`,
+      id: this.createUuid(),
       childId: child.id,
       timestamp: new Date().toISOString(),
     };
@@ -434,19 +631,7 @@ class StorageService {
       }
     }
 
-    // Push to Supabase if connected
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      supabase.from('quiz_attempts').insert({
-        child_id: child.id,
-        category: newAttempt.category,
-        title: newAttempt.title,
-        total_questions: newAttempt.totalQuestions,
-        correct_answers: newAttempt.correctAnswers,
-        score_percent: newAttempt.scorePercent,
-        passed: newAttempt.passed,
-      }).then();
-    }
+    void this.persistQuizAttempt(newAttempt);
 
     this.notify();
   }

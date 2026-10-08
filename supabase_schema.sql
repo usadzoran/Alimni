@@ -9,9 +9,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. جدول ملفات أولياء الأمور (مرتبط بحساب Supabase Auth)
 CREATE TABLE IF NOT EXISTS public.parent_profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT NOT NULL,
+    email TEXT,
     full_name TEXT DEFAULT 'ولي الأمر',
-    pin_code TEXT DEFAULT '1234',
     daily_goal_minutes INT DEFAULT 15,
     sound_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -23,11 +22,20 @@ CREATE TABLE IF NOT EXISTS public.children (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parent_id UUID NOT NULL REFERENCES public.parent_profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     avatar TEXT NOT NULL DEFAULT '🐰',
+    age SMALLINT NOT NULL CHECK (age BETWEEN 2 AND 7),
     age_group TEXT NOT NULL CHECK (age_group IN ('3-4', '5-6')),
+    grade_level TEXT NOT NULL,
+    learning_track TEXT CHECK (learning_track IN ('2-4', '5-7')),
     current_level INT NOT NULL DEFAULT 1 CHECK (current_level BETWEEN 1 AND 6),
     stars_count INT NOT NULL DEFAULT 0,
     total_time_minutes INT NOT NULL DEFAULT 0,
+    unlocked_characters TEXT[] NOT NULL DEFAULT ARRAY['farfour_rabbit']::TEXT[],
+    mastered_letters INT[] NOT NULL DEFAULT ARRAY[]::INT[],
+    mastered_numbers INT[] NOT NULL DEFAULT ARRAY[]::INT[],
+    completed_lessons TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    troubled_items JSONB NOT NULL DEFAULT '[]'::JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     last_active TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

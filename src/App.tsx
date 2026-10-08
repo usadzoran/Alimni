@@ -74,7 +74,7 @@ export default function App() {
     return (
       <AgeGroupSelection
         childName={childFullName}
-        onSelectGroup={(group: LearningTrack) => storageService.updateChild(currentChild.id, { learningTrack: group })}
+        onSelectGroup={(group: LearningTrack) => storageService.saveLearningTrack(currentChild.id, group)}
       />
     );
   }

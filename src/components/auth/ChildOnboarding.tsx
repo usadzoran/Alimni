@@ -32,8 +32,9 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
   const [age, setAge] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const cleanFirstName = firstName.trim();
     const cleanLastName = lastName.trim();
@@ -48,15 +49,23 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
       return;
     }
 
-    storageService.updateChild(child.id, {
-      name: cleanFirstName,
-      lastName: cleanLastName,
-      age: ageValue,
-      ageGroup: ageValue <= 4 ? '3-4' : '5-6',
-      gradeLevel,
-    });
-    audioService.playTap();
-    onComplete();
+    setError('');
+    setIsSaving(true);
+    try {
+      await storageService.saveChildOnboarding(child.id, {
+        name: cleanFirstName,
+        lastName: cleanLastName,
+        age: ageValue,
+        ageGroup: ageValue <= 4 ? '3-4' : '5-6',
+        gradeLevel,
+      });
+      audioService.playTap();
+      onComplete();
+    } catch {
+      setError('تعذّر حفظ البيانات في قاعدة البيانات. بقيت البيانات على هذا الجهاز؛ تحقق من الاتصال ثم أعد المحاولة قبل المتابعة.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -157,12 +166,13 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
 
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 px-5 py-3.5 text-base font-black text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
+            disabled={isSaving}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-amber-500 to-orange-500 px-5 py-3.5 text-base font-black text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-wait disabled:opacity-70"
           >
-            <span>احفظ البيانات واختر الفئة</span>
-            <ArrowLeft className="h-5 w-5" />
+            {isSaving ? <span role="status">جارٍ حفظ بياناتك...</span> : <><span>احفظ البيانات واختر الفئة</span><ArrowLeft className="h-5 w-5" /></>}
           </button>
           <p className="text-center text-xs leading-5 text-slate-400">هذه الخطوة مطلوبة لإعداد ملف الطفل قبل دخول عالم الحروف والأرقام.</p>
+          <p className="text-center text-xs leading-5 text-slate-500">يُربط الملف بهذا المتصفح تلقائيًا؛ إذا مُسحت بيانات المتصفح أو انتقلت إلى جهاز آخر فلن يمكن استعادته.</p>
         </form>
       </section>
     </main>

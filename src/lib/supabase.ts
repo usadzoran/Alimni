@@ -1,20 +1,27 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// Read from env or local config
+// Publishable client credentials are intentionally public; all private child data is protected by RLS.
+const PUBLIC_SUPABASE_URL = 'https://qkjnybjyyqakyvaoyozy.supabase.co';
+const PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_d1TtE_UGMSXCv8eg7kQulw_O9oc7rWw';
+
 let cachedClient: SupabaseClient | null = null;
-let currentUrl: string = '';
-let currentKey: string = '';
+let currentUrl = '';
+let currentKey = '';
+
+type ViteEnvironment = {
+  VITE_SUPABASE_URL?: string;
+  VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  VITE_SUPABASE_ANON_KEY?: string;
+};
 
 export function getSupabaseCredentials(): { url: string; key: string } {
-  const envUrl = (import.meta as unknown as { env: Record<string, string> }).env.VITE_SUPABASE_URL || '';
-  const envKey = (import.meta as unknown as { env: Record<string, string> }).env.VITE_SUPABASE_ANON_KEY || '';
-
+  const env = (import.meta as unknown as { env: ViteEnvironment }).env;
   const storedUrl = typeof localStorage !== 'undefined' ? localStorage.getItem('arabic_kids_supabase_url') || '' : '';
   const storedKey = typeof localStorage !== 'undefined' ? localStorage.getItem('arabic_kids_supabase_key') || '' : '';
 
   return {
-    url: storedUrl || envUrl,
-    key: storedKey || envKey,
+    url: env.VITE_SUPABASE_URL || storedUrl || PUBLIC_SUPABASE_URL,
+    key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || storedKey || PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   };
 }
 
@@ -23,26 +30,23 @@ export function saveSupabaseCredentials(url: string, key: string) {
     localStorage.setItem('arabic_kids_supabase_url', url.trim());
     localStorage.setItem('arabic_kids_supabase_key', key.trim());
   }
-  // Reset cached client
   cachedClient = null;
+  currentUrl = '';
+  currentKey = '';
 }
 
 export function getSupabaseClient(): SupabaseClient | null {
   const { url, key } = getSupabaseCredentials();
+  if (!url || !key) return null;
 
-  if (!url || !key) {
-    return null;
-  }
-
-  if (cachedClient && currentUrl === url && currentKey === key) {
-    return cachedClient;
-  }
+  if (cachedClient && currentUrl === url && currentKey === key) return cachedClient;
 
   try {
     cachedClient = createClient(url, key, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        detectSessionInUrl: true,
       },
     });
     currentUrl = url;
@@ -58,48 +62,22 @@ export async function testSupabaseConnection(): Promise<{ success: boolean; mess
   const client = getSupabaseClient();
   const { url, key } = getSupabaseCredentials();
 
-  if (!url || !key) {
-    return {
-      success: false,
-      message: 'لم يتم إدخال رابط أو مفتاح Supabase بعد. يرجى إدخال الرابط والمفتاح العام (anon key) في لوحة الإدارة أو ولي الأمر.',
-    };
-  }
-
-  if (!client) {
-    return {
-      success: false,
-      message: 'تعذر إنشاء عميل Supabase. يرجى التأكد من صحة تنسيق رابط المشروع والمفتاح.',
-    };
+  if (!url || !key || !client) {
+    return { success: false, message: 'تعذر إعداد الاتصال بمشروع Supabase.' };
   }
 
   try {
-    // Attempt a light ping by querying any public table or auth
-    const { error } = await client.from('letters').select('id').limit(1);
-
+    const { error } = await client.from('children').select('id').limit(1);
     if (error) {
-      // Check if table missing vs network/key error
-      if (error.code === '42P01') {
-        // Table does not exist yet, but connection succeeded!
-        return {
-          success: true,
-          message: 'تم الاتصال بمشروع Supabase بنجاح! يلزم تنفيذ ملف SQL لإنشاء الجداول وسياسات الأمان.',
-        };
+      if (error.code === '42P01' || error.code === 'PGRST205') {
+        return { success: true, message: 'تم الاتصال بمشروع Supabase؛ لم تُنشأ جداول ملفات الأطفال بعد.' };
       }
-      return {
-        success: false,
-        message: `خطأ من Supabase: ${error.message} (رمز: ${error.code})`,
-      };
+      return { success: false, message: `خطأ من Supabase: ${error.message} (رمز: ${error.code})` };
     }
 
-    return {
-      success: true,
-      message: 'تم الاتصال بقاعدة بيانات Supabase بنجاح وقراءة البيانات!',
-    };
+    return { success: true, message: 'تم الاتصال بقاعدة بيانات الأطفال بنجاح.' };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    return {
-      success: false,
-      message: `فشل الاتصال: ${errorMsg}`,
-    };
+    return { success: false, message: `فشل الاتصال: ${errorMsg}` };
   }
 }
