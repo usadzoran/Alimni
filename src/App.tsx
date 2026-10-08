@@ -12,6 +12,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
 import { ChildOnboarding } from './components/auth/ChildOnboarding';
 import { AgeGroupSelection, FutureGroupPage } from './components/auth/AgeGroupFlow';
+import { LearningTrackActionsBar } from './components/auth/LearningTrackActionsBar';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function App() {
 
   const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
   const [profilePickerOpen, setProfilePickerOpen] = useState<boolean>(false);
+  const [ageGroupSelectionOpen, setAgeGroupSelectionOpen] = useState(false);
 
   // Sync state with storageService
   const [child, setChild] = useState(storageService.getActiveChild());
@@ -58,6 +60,12 @@ export default function App() {
   };
 
   const currentChild = child || storageService.getActiveChild();
+  const openAgeGroupSelection = () => {
+    audioService.playTap();
+    setActiveTab('home');
+    setActiveGameId(undefined);
+    setAgeGroupSelectionOpen(true);
+  };
 
   if (!currentChild.lastName || !currentChild.age || !currentChild.gradeLevel) {
     return (
@@ -70,11 +78,16 @@ export default function App() {
 
   const childFullName = [currentChild.name, currentChild.lastName].filter(Boolean).join(' ');
 
-  if (!currentChild.learningTrack) {
+  if (!currentChild.learningTrack || ageGroupSelectionOpen) {
     return (
       <AgeGroupSelection
         childName={childFullName}
-        onSelectGroup={(group: LearningTrack) => storageService.saveLearningTrack(currentChild.id, group)}
+        onSelectGroup={async (group: LearningTrack) => {
+          await storageService.saveLearningTrack(currentChild.id, group);
+          setAgeGroupSelectionOpen(false);
+          setActiveTab('home');
+          setActiveGameId(undefined);
+        }}
       />
     );
   }
@@ -84,7 +97,7 @@ export default function App() {
       <FutureGroupPage
         childName={childFullName}
         childAge={currentChild.age ?? 0}
-        onBack={() => storageService.updateChild(currentChild.id, { learningTrack: undefined })}
+        onBack={openAgeGroupSelection}
       />
     );
   }
@@ -100,6 +113,12 @@ export default function App() {
           setActiveTab(tab);
         }}
         onOpenProfilePicker={() => setProfilePickerOpen(true)}
+      />
+
+      <LearningTrackActionsBar
+        track="2-4"
+        onChangeGroup={openAgeGroupSelection}
+        onExit={openAgeGroupSelection}
       />
 
       {/* Main Container */}

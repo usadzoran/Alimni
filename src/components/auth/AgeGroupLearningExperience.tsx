@@ -23,6 +23,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { AGE_PROFILES, type ExerciseQuestion } from '../../data/ageGroupExercises';
 import { storageService } from '../../services/storageService';
+import { LearningTrackActionsBar } from './LearningTrackActionsBar';
 import {
   LEARNING_JOURNEY,
   LEARNING_SUBJECTS,
@@ -126,28 +127,29 @@ const ScreenHeader: React.FC<{
   onBack: () => void;
   onHome: () => void;
   onChangeGroup: () => void;
-}> = ({ childName, age, backLabel, onBack, onHome, onChangeGroup }) => (
-  <header className="mb-5 flex items-center justify-between gap-3">
-    <div className="flex min-w-0 items-center gap-3">
-      <button type="button" onClick={onBack} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:-translate-x-0.5 hover:border-sky-300 hover:text-sky-700" aria-label={backLabel} title={backLabel}>
-        <ArrowRight className="h-5 w-5" />
-      </button>
-      <button type="button" onClick={onHome} className="flex min-w-0 items-center gap-2 text-right" aria-label="لوحة التعلم">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-sm"><Sparkles className="h-5 w-5" /></span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-black text-slate-900">عَلِّمني</span>
-          <span className="block truncate text-[11px] font-bold text-slate-500">مغامرة التعلّم</span>
-        </span>
-      </button>
-    </div>
-    <div className="flex shrink-0 items-center gap-2">
-      <span className="hidden max-w-40 truncate rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm sm:inline">أهلًا {childName.split(' ')[0]}</span>
-      <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800">{age} سنوات</span>
-      <button type="button" onClick={onChangeGroup} aria-label="تغيير الفئة العمرية" title="تغيير الفئة العمرية" className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm transition hover:border-sky-300 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-100">
-        <RotateCcw className="h-4 w-4" /><span className="hidden sm:inline">تغيير الفئة</span>
-      </button>
-    </div>
-  </header>
+  onExit: () => void;
+}> = ({ childName, age, backLabel, onBack, onHome, onChangeGroup, onExit }) => (
+  <>
+    <header className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        <button type="button" onClick={onBack} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:-translate-x-0.5 hover:border-sky-300 hover:text-sky-700" aria-label={backLabel} title={backLabel}>
+          <ArrowRight className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={onHome} className="flex min-w-0 items-center gap-2 text-right" aria-label="لوحة التعلم">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-white shadow-sm"><Sparkles className="h-5 w-5" /></span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-black text-slate-900">عَلِّمني</span>
+            <span className="block truncate text-[11px] font-bold text-slate-500">مغامرة التعلّم</span>
+          </span>
+        </button>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="hidden max-w-40 truncate rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm sm:inline">أهلًا {childName.split(' ')[0]}</span>
+        <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-black text-sky-800">{age} سنوات</span>
+      </div>
+    </header>
+    <LearningTrackActionsBar track="5-7" onChangeGroup={onChangeGroup} onExit={onExit} />
+  </>
 );
 
 const PrimaryButton: React.FC<{ children: React.ReactNode; onClick: () => void; theme?: SubjectTheme; icon?: LucideIcon }> = ({ children, onClick, theme = 'sky', icon: Icon = ArrowLeft }) => (
@@ -509,6 +511,7 @@ export const AgeGroupLearningExperience: React.FC<AgeGroupLearningExperienceProp
           }}
           onHome={() => navigate({ screen: 'home' })}
           onChangeGroup={backToAgeGroups}
+          onExit={backToAgeGroups}
         />
 
         {route.screen === 'home' && <DashboardPage childName={childName} age={childAge} completedCount={completedCount} stars={stars} onOpenSubject={(id) => navigate({ screen: 'subject', subjectId: id })} onOpenLesson={(location) => navigate({ screen: 'lesson', ...location })} />}
