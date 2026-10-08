@@ -66,7 +66,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [section, setSection] = useState<AdminSection>('overview');
   const [checkingSession, setCheckingSession] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -114,7 +113,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     }
     await client.auth.signOut();
     setAuthorized(false);
-    setAuthError('هذا الحساب غير مخوّل للوحة الإدارة. استخدم البريد المعتمد من مالك الموقع.');
+    setAuthError('هذا الحساب غير مخوّل بعد. يجب أن يضيف مالك الموقع UUID هذا الحساب إلى قائمة المدراء.');
     return false;
   };
 
@@ -194,29 +193,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     void loadSection(section);
   }, [authorized, section]);
 
-  const signInOrSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
+  const signIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!client || authBusy) return;
     setAuthBusy(true); setAuthError(''); setAuthNotice('');
     const normalizedEmail = email.trim().toLowerCase();
     try {
-      if (authMode === 'signin') {
-        const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
-        if (error) throw error;
-        const allowed = await verifyCurrentSession();
-        if (allowed) setPassword('');
-      } else {
-        const { data, error } = await client.auth.signUp({ email: normalizedEmail, password });
-        if (error) throw error;
-        if (data.session) {
-          const allowed = await verifyCurrentSession();
-          if (allowed) setPassword('');
-        } else {
-          setAuthNotice('أرسلنا رسالة تحقق إلى بريدك. أكّد الحساب، ثم ارجع إلى هذه الصفحة وسجّل الدخول.');
-          setAuthMode('signin');
-          setPassword('');
-        }
-      }
+      const { error } = await client.auth.signInWithPassword({ email: normalizedEmail, password });
+      if (error) throw error;
+      await verifyCurrentSession();
+      setPassword('');
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'تعذر إكمال تسجيل الدخول.');
     } finally {
@@ -338,27 +324,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </div>
           <p className="mt-5 text-xs font-black text-indigo-700">منطقة خاصة بصاحب الموقع</p>
           <h1 className="mt-1 text-2xl font-black">لوحة إدارة عَلِّمني</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">يلزم حساب Supabase مصرح به. إخفاء الرابط وحده لا يمنح صلاحية لقراءة بيانات التلاميذ أو الإدارة.</p>
-          <form onSubmit={(event) => void signInOrSignUp(event)} className="mt-6 space-y-4">
+          <p className="mt-2 text-sm leading-6 text-slate-600">يلزم حساب Supabase مُنشأ مسبقًا ومربوط بمعرّف UUID مصرح به. لا يمكن إنشاء حساب مدير من هذه الصفحة.</p>
+          <form onSubmit={(event) => void signIn(event)} className="mt-6 space-y-4">
             <div>
               <label htmlFor="admin-email" className="mb-1.5 block text-sm font-black">البريد الإلكتروني</label>
               <input id="admin-email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 text-left outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" dir="ltr" />
             </div>
             <div>
               <label htmlFor="admin-password" className="mb-1.5 block text-sm font-black">كلمة المرور</label>
-              <input id="admin-password" type="password" required minLength={8} autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" dir="ltr" />
+              <input id="admin-password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" dir="ltr" />
             </div>
             {authError && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">{authError}</p>}
             {authNotice && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{authNotice}</p>}
             <button type="submit" disabled={authBusy || !client} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-700 px-4 py-3 font-black text-white transition hover:bg-indigo-800 disabled:opacity-50">
-              <LogIn className="h-4 w-4" /> {authBusy ? 'جارٍ التحقق...' : authMode === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب المدير'}
+              <LogIn className="h-4 w-4" /> {authBusy ? 'جارٍ التحقق...' : 'تسجيل الدخول'}
             </button>
           </form>
-          <button type="button" onClick={() => { setAuthMode((mode) => mode === 'signin' ? 'signup' : 'signin'); setAuthError(''); setAuthNotice(''); }} className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-50">
-            {authMode === 'signin' ? 'أول مرة؟ أنشئ حسابًا للبريد المصرح به' : 'لديك حساب؟ انتقل إلى تسجيل الدخول'}
-          </button>
           {!client && <p className="mt-3 text-xs leading-5 text-rose-700">تعذر تهيئة اتصال قاعدة البيانات؛ تحقق من إعداد Supabase في الموقع.</p>}
-          <p className="mt-4 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-400">لا تشارك كلمة المرور مع أحد. يمكن تسجيل حساب عادي، لكن صلاحيات المدير محصورة بالبريد المصرّح في قاعدة البيانات.</p>
+          <p className="mt-4 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-400">تسجيل التلاميذ يظل دون بريد أو تأكيد. صلاحية هذه اللوحة لا تُمنح إلا لحساب ربطه مالك الموقع بمعرّف UUID.</p>
         </section>
       </main>
     );

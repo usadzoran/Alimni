@@ -1,6 +1,11 @@
 -- Reduce privilege and policy overlap for the Alimni admin portal.
 -- Keep visitor-facing access in the anon role; administrator mutations require an authenticated allowlisted account.
 
+ALTER TABLE public.alimni_admin_allowlist
+    ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alimni_admin_allowlist_user_id
+    ON public.alimni_admin_allowlist(user_id) WHERE user_id IS NOT NULL;
+
 CREATE OR REPLACE FUNCTION public.is_alimni_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -11,7 +16,7 @@ AS $$
     SELECT EXISTS (
         SELECT 1
         FROM public.alimni_admin_allowlist AS allowed
-        WHERE lower(allowed.email) = lower(coalesce((SELECT auth.jwt() ->> 'email'), ''))
+        WHERE allowed.user_id = (SELECT auth.uid())
     );
 $$;
 REVOKE ALL ON FUNCTION public.is_alimni_admin() FROM PUBLIC, anon;
@@ -20,7 +25,7 @@ GRANT EXECUTE ON FUNCTION public.is_alimni_admin() TO authenticated;
 DROP POLICY IF EXISTS "Admins read their own allowlist entry" ON public.alimni_admin_allowlist;
 CREATE POLICY "Admins read their own allowlist entry"
     ON public.alimni_admin_allowlist FOR SELECT TO authenticated
-    USING (lower(email) = lower(coalesce((SELECT auth.jwt() ->> 'email'), '')));
+    USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Alimni admins view all child profiles" ON public.children;
 CREATE POLICY "Alimni admins view all child profiles"

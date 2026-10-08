@@ -4,6 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.alimni_admin_allowlist (
     email TEXT PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT alimni_admin_allowlist_lowercase_email CHECK (email = lower(email)),
     CONSTRAINT alimni_admin_allowlist_email_format CHECK (email ~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$')
@@ -19,7 +20,7 @@ AS $$
     SELECT EXISTS (
         SELECT 1
         FROM public.alimni_admin_allowlist AS allowed
-        WHERE lower(allowed.email) = lower(coalesce((SELECT auth.jwt() ->> 'email'), ''))
+        WHERE allowed.user_id = (SELECT auth.uid())
     );
 $$;
 
@@ -87,6 +88,8 @@ CREATE INDEX IF NOT EXISTS idx_site_visits_created_at ON public.site_visits(crea
 CREATE INDEX IF NOT EXISTS idx_site_inquiries_status_created_at ON public.site_inquiries(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_site_documents_published_created_at ON public.site_documents(is_published, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_site_ads_placements ON public.site_ads USING GIN(placements);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alimni_admin_allowlist_user_id
+    ON public.alimni_admin_allowlist(user_id) WHERE user_id IS NOT NULL;
 
 ALTER TABLE public.alimni_admin_allowlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
@@ -108,7 +111,7 @@ GRANT SELECT ON public.children TO authenticated;
 DROP POLICY IF EXISTS "Admins read their own allowlist entry" ON public.alimni_admin_allowlist;
 CREATE POLICY "Admins read their own allowlist entry"
     ON public.alimni_admin_allowlist FOR SELECT TO authenticated
-    USING (lower(email) = lower(coalesce((SELECT auth.jwt() ->> 'email'), '')));
+    USING (user_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS "Alimni admins view all child profiles" ON public.children;
 CREATE POLICY "Alimni admins view all child profiles"
