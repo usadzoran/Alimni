@@ -24,6 +24,7 @@ import type { LucideIcon } from 'lucide-react';
 import { AGE_PROFILES, type ExerciseQuestion } from '../../data/ageGroupExercises';
 import { storageService } from '../../services/storageService';
 import { LearningTrackActionsBar } from './LearningTrackActionsBar';
+import { SiteAdSlot, SiteFooterLinks } from '../site/PublicSitePages';
 import {
   LEARNING_JOURNEY,
   LEARNING_SUBJECTS,
@@ -117,6 +118,8 @@ const getExerciseSet = (age: number, bank: ExerciseBankId, questionCategory?: Le
 const PageFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="learning-page-enter">
     {children}
+    <SiteAdSlot placement="learning-footer" className="mt-6 px-1" />
+    <SiteFooterLinks />
   </div>
 );
 

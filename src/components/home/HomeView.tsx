@@ -3,6 +3,7 @@ import { BookOpen, Hash, Sparkles, Trophy, Gamepad2, Play, Flame, ArrowLeft, Che
 import { ChildProfile } from '../../types';
 import { MascotGuide } from '../MascotGuide';
 import { audioService } from '../../services/audioService';
+import { SiteAdSlot } from '../site/PublicSitePages';
 
 interface HomeViewProps {
   child: ChildProfile;
@@ -118,6 +119,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       </div>
+
+      <SiteAdSlot placement="home-banner" className="px-1" />
 
       {/* Encouraging Mascot Guide */}
       <MascotGuide mascotId={child.unlockedCharacters[0] || 'farfour_rabbit'} />

@@ -12,8 +12,7 @@ export type AppTab =
   | 'practice'
   | 'stories'
   | 'levels'
-  | 'rewards'
-  | 'admin';
+  | 'rewards';
 
 interface HeaderProps {
   activeChild?: ChildProfile;

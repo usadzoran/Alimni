@@ -8,7 +8,7 @@ import { PracticeHub } from './components/practice/PracticeHub';
 import { StoriesSongsHub } from './components/stories/StoriesSongsHub';
 import { LevelsRoadmapView } from './components/levels/LevelsRoadmapView';
 import { RewardsView } from './components/rewards/RewardsView';
-import { AdminDashboard } from './components/admin/AdminDashboard';
+import { PublicContactPage, PublicLibraryPage, SiteFooterLinks, trackSiteVisitOnce } from './components/site/PublicSitePages';
 import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerModal';
 import { ChildOnboarding } from './components/auth/ChildOnboarding';
 import { AgeGroupSelection, FutureGroupPage } from './components/auth/AgeGroupFlow';
@@ -18,9 +18,21 @@ import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
 import { LearningTrack } from './types';
 
+type SiteRoute = 'admin' | 'library' | 'contact' | null;
+
+const resolveSiteRoute = (hash: string, search = ''): SiteRoute => {
+  if (new URLSearchParams(search).get('alimni-admin') === '1') return 'admin';
+  const route = hash.replace(/^#/, '').split('/')[0].split('?')[0];
+  if (route === 'admin' || route === 'library' || route === 'contact') return route;
+  return null;
+};
+
+const LazyAdminPortal = React.lazy(() => import('./components/admin/AdminPortal').then(({ AdminPortal }) => ({ default: AdminPortal })));
+
 export default function App() {
+  const [siteRoute, setSiteRoute] = useState<SiteRoute>(() => resolveSiteRoute(window.location.hash, window.location.search));
   const [activeTab, setActiveTab] = useState<
-    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards' | 'admin'
+    'home' | 'letters' | 'numbers' | 'games' | 'practice' | 'stories' | 'levels' | 'rewards'
   >('home');
 
   const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
@@ -41,10 +53,22 @@ export default function App() {
 
   // Track study time every 60 seconds
   useEffect(() => {
+    if (siteRoute || ageGroupSelectionOpen || !child?.learningTrack) return;
     const timer = setInterval(() => {
       storageService.addStudyTime(1);
     }, 60000);
     return () => clearInterval(timer);
+  }, [siteRoute, ageGroupSelectionOpen, child?.learningTrack]);
+
+  useEffect(() => {
+    const syncSiteRoute = () => setSiteRoute(resolveSiteRoute(window.location.hash, window.location.search));
+    window.addEventListener('hashchange', syncSiteRoute);
+    window.addEventListener('popstate', syncSiteRoute);
+    void trackSiteVisitOnce();
+    return () => {
+      window.removeEventListener('hashchange', syncSiteRoute);
+      window.removeEventListener('popstate', syncSiteRoute);
+    };
   }, []);
 
   const handleNavigateFromHome = (
@@ -67,12 +91,27 @@ export default function App() {
     setAgeGroupSelectionOpen(true);
   };
 
+  const closeSiteRoute = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('alimni-admin');
+    url.hash = '';
+    window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+    setSiteRoute(null);
+  };
+
+  if (siteRoute === 'admin') return <React.Suspense fallback={<div dir="rtl" className="grid min-h-screen place-items-center bg-slate-950 text-white">جارٍ فتح لوحة الإدارة...</div>}><LazyAdminPortal onClose={closeSiteRoute} /></React.Suspense>;
+  if (siteRoute === 'library') return <PublicLibraryPage onBack={closeSiteRoute} />;
+  if (siteRoute === 'contact') return <PublicContactPage onBack={closeSiteRoute} />;
+
   if (!currentChild.lastName || !currentChild.age || !currentChild.gradeLevel) {
     return (
-      <ChildOnboarding
-        child={currentChild}
-        onComplete={() => setChild(storageService.getActiveChild())}
-      />
+      <>
+        <ChildOnboarding
+          child={currentChild}
+          onComplete={() => setChild(storageService.getActiveChild())}
+        />
+        <SiteFooterLinks />
+      </>
     );
   }
 
@@ -80,15 +119,18 @@ export default function App() {
 
   if (!currentChild.learningTrack || ageGroupSelectionOpen) {
     return (
-      <AgeGroupSelection
-        childName={childFullName}
-        onSelectGroup={async (group: LearningTrack) => {
-          await storageService.saveLearningTrack(currentChild.id, group);
-          setAgeGroupSelectionOpen(false);
-          setActiveTab('home');
-          setActiveGameId(undefined);
-        }}
-      />
+      <>
+        <AgeGroupSelection
+          childName={childFullName}
+          onSelectGroup={async (group: LearningTrack) => {
+            await storageService.saveLearningTrack(currentChild.id, group);
+            setAgeGroupSelectionOpen(false);
+            setActiveTab('home');
+            setActiveGameId(undefined);
+          }}
+        />
+        <SiteFooterLinks />
+      </>
     );
   }
 
@@ -160,10 +202,9 @@ export default function App() {
 
         {activeTab === 'rewards' && <RewardsView child={currentChild} />}
 
-        {activeTab === 'admin' && (
-          <AdminDashboard onBackToApp={() => setActiveTab('home')} />
-        )}
       </main>
+
+      <SiteFooterLinks />
 
       {/* Mobile Sticky Bottom Navigation (Touch-Friendly, <= 15% viewport height) */}
       <nav className="lg:hidden sticky bottom-0 z-30 bg-white/95 backdrop-blur-md border-t border-amber-200 px-2 pt-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] shadow-lg">
