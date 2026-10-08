@@ -83,6 +83,7 @@ export default function App() {
     return (
       <FutureGroupPage
         childName={childFullName}
+        childAge={currentChild.age ?? 0}
         onBack={() => storageService.updateChild(currentChild.id, { learningTrack: undefined })}
       />
     );
