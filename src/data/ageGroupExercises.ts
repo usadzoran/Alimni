@@ -4,6 +4,12 @@ export interface ExerciseQuestion {
   answer: number;
 }
 
+export type ThinkingQuestionCategory = 'classification' | 'sequence' | 'reasoning';
+
+export interface ThinkingQuestion extends ExerciseQuestion {
+  category: ThinkingQuestionCategory;
+}
+
 export interface AgeDifficultyProfile {
   age: number;
   arabicChallenge: string;
@@ -19,6 +25,7 @@ export interface AgeDifficultyProfile {
   arabicQuestions: ExerciseQuestion[];
   mathQuestions: ExerciseQuestion[];
   englishQuestions: ExerciseQuestion[];
+  thinkingQuestions: ThinkingQuestion[];
 }
 
 export const AGE_PROFILES: AgeDifficultyProfile[] = [
@@ -70,6 +77,17 @@ export const AGE_PROFILES: AgeDifficultyProfile[] = [
       { prompt: 'Which word is a color?', options: ['red', 'dog', 'bag'], answer: 0 },
       { prompt: 'Complete the letters: A, B, ...', options: ['C', 'E', 'G'], answer: 0 },
     ],
+    thinkingQuestions: [
+      { category: 'classification', prompt: 'أي مجموعة تتكوّن من أشياء نأكلها؟', options: ['تفاحة وموزة', 'كرة وحذاء', 'كتاب وقلم'], answer: 0 },
+      { category: 'classification', prompt: 'أي شيء لا ينتمي إلى المجموعة: قطة، كلب، تفاحة؟', options: ['تفاحة', 'قطة', 'كلب'], answer: 0 },
+      { category: 'classification', prompt: 'ما الشيئان اللذان نستخدمهما للرسم؟', options: ['قلم وورقة', 'ملعقة وحذاء', 'كرة وكوب'], answer: 0 },
+      { category: 'sequence', prompt: 'أكمل النمط: 🔴 🔵 🔴 🔵 ...', options: ['🔴', '🟩', '⭐'], answer: 0 },
+      { category: 'sequence', prompt: 'بعد أن نزرع البذرة، ماذا نفعل ليساعدها على النمو؟', options: ['نسقيها', 'نضعها في الحقيبة', 'نرسمها'], answer: 0 },
+      { category: 'sequence', prompt: 'ماذا نفعل أولًا قبل أن نأكل؟', options: ['نغسل أيدينا', 'ننام', 'نرتدي الحذاء'], answer: 0 },
+      { category: 'reasoning', prompt: 'ارتدى سامي معطفه لأن الجو بارد. لماذا ارتدى المعطف؟', options: ['ليدفأ', 'ليلعب بالكرة', 'ليأكل'], answer: 0 },
+      { category: 'reasoning', prompt: 'سقت ليلى الزهرة، وبعد أيام كبرت. ما الذي ساعدها؟', options: ['الماء', 'الحذاء', 'الكتاب'], answer: 0 },
+      { category: 'reasoning', prompt: 'ابتلّت الأرض بعد نزول المطر. ما سبب ابتلالها؟', options: ['المطر', 'الشمس', 'اللعب'], answer: 0 },
+    ],
   },
   {
     age: 6,
@@ -119,6 +137,17 @@ export const AGE_PROFILES: AgeDifficultyProfile[] = [
       { prompt: 'Choose a greeting.', options: ['Hello', 'Goodbye', 'Red'], answer: 0 },
       { prompt: 'How many dots? ● ● ● ●', options: ['3', '4', '5'], answer: 1 },
     ],
+    thinkingQuestions: [
+      { category: 'classification', prompt: 'أي شيء نستخدمه في المطبخ؟', options: ['شوكة', 'حذاء', 'ورقة شجر'], answer: 0 },
+      { category: 'classification', prompt: 'ما الشيئان اللذان يعيشان في الماء؟', options: ['سمكة وبطة', 'قطة وحذاء', 'قلم وكتاب'], answer: 0 },
+      { category: 'classification', prompt: 'أي شكل مختلف: دائرة، دائرة، مربع؟', options: ['المربع', 'الدائرة الأولى', 'الدائرة الثانية'], answer: 0 },
+      { category: 'sequence', prompt: 'أكمل النمط: ⭐ 🌙 ⭐ 🌙 ...', options: ['⭐', '🌞', '🍎'], answer: 0 },
+      { category: 'sequence', prompt: 'ما الخطوة التي تأتي بعد وضع الصابون على اليدين؟', options: ['نفرك اليدين بالماء', 'نلبس الحذاء', 'ننام'], answer: 0 },
+      { category: 'sequence', prompt: 'رتّب بداية نمو النبتة: بذرة، نبتة صغيرة، ...', options: ['نبتة أكبر', 'ثمرة قبل البذرة', 'حذاء'], answer: 0 },
+      { category: 'reasoning', prompt: 'أخذت هدى مظلتها عندما رأت الغيوم الداكنة. لماذا؟', options: ['قد يهطل المطر', 'لتلعب بالثلج', 'لتقرأ كتابًا'], answer: 0 },
+      { category: 'reasoning', prompt: 'لم تنبت البذرة لأنها لم تحصل على ماء. ما الذي تحتاجه؟', options: ['الماء', 'لعبة', 'حقيبة'], answer: 0 },
+      { category: 'reasoning', prompt: 'وضع آدم الحليب في الثلاجة حتى يبقى باردًا. أين وضعه؟', options: ['في الثلاجة', 'في الحديقة', 'في الحقيبة'], answer: 0 },
+    ],
   },
   {
     age: 7,
@@ -167,6 +196,17 @@ export const AGE_PROFILES: AgeDifficultyProfile[] = [
       { prompt: 'Choose the word for the color yellow.', options: ['yellow', 'dog', 'book'], answer: 0 },
       { prompt: 'Which word matches this picture? 🍎', options: ['apple', 'ball', 'sun'], answer: 0 },
       { prompt: 'Choose the small letter for G.', options: ['g', 'q', 'p'], answer: 0 },
+    ],
+    thinkingQuestions: [
+      { category: 'classification', prompt: 'أي كلمة تجمع الأشياء التالية: قطة، كلب، أرنب؟', options: ['حيوانات', 'أطعمة', 'أدوات مدرسية'], answer: 0 },
+      { category: 'classification', prompt: 'أي شيء لا ينتمي إلى أدوات الكتابة: قلم، ممحاة، موزة؟', options: ['موزة', 'قلم', 'ممحاة'], answer: 0 },
+      { category: 'classification', prompt: 'ما الشيئان اللذان لهما أجنحة؟', options: ['عصفور وفراشة', 'سمكة وقلم', 'قطة وكتاب'], answer: 0 },
+      { category: 'sequence', prompt: 'أكمل النمط: 🔺 🔵 🔺 🔵 ...', options: ['🔺', '🟩', '⭐'], answer: 0 },
+      { category: 'sequence', prompt: 'رتّب أحداث القصة: لبس الحذاء، خرج من البيت، استيقظ.', options: ['استيقظ، لبس الحذاء، خرج', 'خرج، استيقظ، لبس الحذاء', 'لبس الحذاء، خرج، استيقظ'], answer: 0 },
+      { category: 'sequence', prompt: 'ما الذي يأتي بعد أن نغسل الفاكهة؟', options: ['نأكلها', 'نزرعها من جديد فورًا', 'نضعها في الحذاء'], answer: 0 },
+      { category: 'reasoning', prompt: 'أغلق يوسف النافذة عندما هبّت الرياح القوية. لماذا أغلقها؟', options: ['ليمنع دخول الهواء والغبار', 'ليبحث عن كتاب', 'ليسقي النبات'], answer: 0 },
+      { category: 'reasoning', prompt: 'كانت الأرض جافة، فسقى البستاني الأشجار. ماذا قد يحدث بعد ذلك؟', options: ['تتحسن الأشجار مع العناية', 'تتحول الأشجار إلى ألعاب', 'تختفي الحديقة فورًا'], answer: 0 },
+      { category: 'reasoning', prompt: 'تأخر القطار بسبب المطر الغزير. ما سبب تأخره؟', options: ['المطر الغزير', 'حقيبة المسافر', 'لون القطار'], answer: 0 },
     ],
   },
 ];

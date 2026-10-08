@@ -1,1 +1,1 @@
-{"routes":[{"path":"/","title":"عالم الحروف والأرقام"}]}
+{"routes":[{"path":"/","title":"لوحة التعلم"},{"path":"/#subject/:subjectId","title":"المواد التعليمية"},{"path":"/#lesson/:subjectId/:lessonId","title":"صفحة الدرس"},{"path":"/#exercise/:subjectId/:lessonId","title":"صفحة التمرين"}]}
