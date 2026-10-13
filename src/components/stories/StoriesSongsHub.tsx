@@ -31,9 +31,13 @@ export const StoriesSongsHub: React.FC<StoriesSongsHubProps> = ({ child, onBackT
   const [song, setSong] = useState<Song | null>(null);
   const [songLine, setSongLine] = useState(0);
 
-  const speakStoryLine = (text: string) => {
+  const speakStoryLine = (text: string, audioPath?: string) => {
     audioService.playTap();
-    audioService.speakArabic(text, { rate: 0.78, pitch: 1.12 });
+    if (audioPath) {
+      audioService.playNarrationAsset(audioPath, text);
+    } else {
+      audioService.speakArabic(text, { rate: 0.78, pitch: 1.12 });
+    }
   };
 
   const openStory = (selected: Story) => {
@@ -41,7 +45,7 @@ export const StoriesSongsHub: React.FC<StoriesSongsHubProps> = ({ child, onBackT
     setStoryStep(0);
     setStoryAnswer(null);
     setSong(null);
-    speakStoryLine(selected.lines[0]);
+    speakStoryLine(selected.lines[0], `audio/stories/${selected.id}-1.wav`);
   };
 
   const chooseStoryAnswer = (answer: string) => {
@@ -61,7 +65,7 @@ export const StoriesSongsHub: React.FC<StoriesSongsHubProps> = ({ child, onBackT
     setSong(selected);
     setSongLine(0);
     setStory(null);
-    speakStoryLine(selected.lyrics[0]);
+    speakStoryLine(selected.lyrics[0], `audio/songs/${selected.id}-1.wav`);
   };
 
   const playNextSongLine = () => {
@@ -81,8 +85,8 @@ export const StoriesSongsHub: React.FC<StoriesSongsHubProps> = ({ child, onBackT
       <div className="mx-auto max-w-2xl rounded-3xl border border-rose-200 bg-white p-6 text-center shadow-sm md:p-10">
         <div className="mb-6 flex justify-center gap-2">{story.lines.map((_, index) => <span key={index} className={`h-2 w-12 rounded-full ${index <= storyStep ? 'bg-rose-500' : 'bg-slate-200'}`} />)}</div>
         <p className="min-h-24 text-2xl font-black leading-relaxed text-slate-800">{line}</p>
-        <button onClick={() => speakStoryLine(line)} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-5 py-3 text-sm font-black text-rose-700"><Volume2 className="h-5 w-5" /> استمع للقصة</button>
-        {storyStep < story.lines.length - 1 ? <button onClick={() => { const next = storyStep + 1; setStoryStep(next); speakStoryLine(story.lines[next]); }} className="mx-auto mt-5 flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white">تابع القصة <ChevronLeft className="h-4 w-4" /></button> : <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xl font-black text-slate-900">سؤال القصة</h3><p className="mt-2 font-bold text-slate-600">{story.question}</p><div className="mt-4 grid gap-2 sm:grid-cols-3">{story.options.map((option) => <button key={option} onClick={() => chooseStoryAnswer(option)} className={`rounded-2xl border-2 p-3 text-sm font-black transition ${storyAnswer === option ? option === story.answer ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 hover:border-rose-300'}`}>{option}</button>)}</div>{storyAnswer && <p className={`mt-4 flex items-center justify-center gap-2 font-black ${storyAnswer === story.answer ? 'text-emerald-700' : 'text-rose-700'}`}>{storyAnswer === story.answer ? <CheckCircle2 className="h-5 w-5" /> : 'حاول مرة أخرى مع الاستماع للقصة'}</p>}</div>}
+        <button onClick={() => speakStoryLine(line, `audio/stories/${story.id}-${storyStep + 1}.wav`)} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-5 py-3 text-sm font-black text-rose-700"><Volume2 className="h-5 w-5" /> استمع للقصة</button>
+        {storyStep < story.lines.length - 1 ? <button onClick={() => { const next = storyStep + 1; setStoryStep(next); speakStoryLine(story.lines[next], `audio/stories/${story.id}-${next + 1}.wav`); }} className="mx-auto mt-5 flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white">تابع القصة <ChevronLeft className="h-4 w-4" /></button> : <div className="mt-8 border-t border-slate-100 pt-6"><h3 className="text-xl font-black text-slate-900">سؤال القصة</h3><p className="mt-2 font-bold text-slate-600">{story.question}</p><div className="mt-4 grid gap-2 sm:grid-cols-3">{story.options.map((option) => <button key={option} onClick={() => chooseStoryAnswer(option)} className={`rounded-2xl border-2 p-3 text-sm font-black transition ${storyAnswer === option ? option === story.answer ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 hover:border-rose-300'}`}>{option}</button>)}</div>{storyAnswer && <p className={`mt-4 flex items-center justify-center gap-2 font-black ${storyAnswer === story.answer ? 'text-emerald-700' : 'text-rose-700'}`}>{storyAnswer === story.answer ? <CheckCircle2 className="h-5 w-5" /> : 'حاول مرة أخرى مع الاستماع للقصة'}</p>}</div>}
       </div>
     </div>;
   }
@@ -92,7 +96,7 @@ export const StoriesSongsHub: React.FC<StoriesSongsHubProps> = ({ child, onBackT
     return <div className="space-y-6 pb-12">
       <button onClick={() => setSong(null)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100"><ArrowLeft className="h-4 w-4" /> كل الأناشيد</button>
       <section className={`rounded-[2rem] bg-gradient-to-br ${song.color} p-6 text-white shadow-lg md:p-10`}><div className="text-center"><span className="text-7xl">{song.emoji}</span><p className="mt-3 text-xs font-bold text-white/80">أنشودة تفاعلية</p><h2 className="mt-1 text-3xl font-black">{song.title}</h2></div></section>
-      <div className="mx-auto max-w-2xl rounded-3xl border border-emerald-200 bg-white p-6 text-center shadow-sm md:p-10"><p className="text-3xl font-black leading-relaxed text-slate-800">{lyric}</p><div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => speakStoryLine(lyric)} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700"><Volume2 className="h-5 w-5" /> استمع</button><button onClick={playNextSongLine} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white"><Play className="h-5 w-5" /> السطر التالي</button></div><p className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm font-black text-amber-800">👏 {song.action}</p><div className="mt-6 flex justify-center gap-2">{song.lyrics.map((_, index) => <button aria-label={`السطر ${index + 1}`} key={index} onClick={() => { setSongLine(index); speakStoryLine(song.lyrics[index]); }} className={`h-3 w-3 rounded-full ${index === songLine ? 'bg-emerald-600' : 'bg-slate-200'}`} />)}</div></div>
+      <div className="mx-auto max-w-2xl rounded-3xl border border-emerald-200 bg-white p-6 text-center shadow-sm md:p-10"><p className="text-3xl font-black leading-relaxed text-slate-800">{lyric}</p><div className="mt-6 flex flex-wrap justify-center gap-3"><button onClick={() => speakStoryLine(lyric, `audio/songs/${song.id}-${songLine + 1}.wav`)} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700"><Volume2 className="h-5 w-5" /> استمع</button><button onClick={playNextSongLine} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white"><Play className="h-5 w-5" /> السطر التالي</button></div><p className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm font-black text-amber-800">👏 {song.action}</p><div className="mt-6 flex justify-center gap-2">{song.lyrics.map((_, index) => <button aria-label={`السطر ${index + 1}`} key={index} onClick={() => { setSongLine(index); speakStoryLine(song.lyrics[index], `audio/songs/${song.id}-${index + 1}.wav`); }} className={`h-3 w-3 rounded-full ${index === songLine ? 'bg-emerald-600' : 'bg-slate-200'}`} />)}</div></div>
     </div>;
   }
 

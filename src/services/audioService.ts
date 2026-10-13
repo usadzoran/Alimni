@@ -327,6 +327,12 @@ class AudioService {
     );
   }
 
+  /** Play a bundled narration clip, with browser speech as a last-resort fallback. */
+  public playNarrationAsset(relativePath: string, fallbackText: string) {
+    const cleanPath = relativePath.replace(/^\/+/, '');
+    this.playPronunciationAsset(`${import.meta.env.BASE_URL}${cleanPath}`, fallbackText);
+  }
+
   /** Preload the short clips in the background so a tap doesn't wait for a network request. */
   private preloadPronunciationAudio() {
     if (typeof window === 'undefined') return;
@@ -377,6 +383,9 @@ class AudioService {
       if (this.currentAudio === audio) this.currentAudio = null;
     };
     audio.onerror = useSpeechFallback;
+    if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      audio.load();
+    }
 
     const playback = audio.play();
     if (playback) playback.catch(useSpeechFallback);
