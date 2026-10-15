@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Activity,
   ArrowRight,
+  Bell,
   BookOpen,
   BarChart3,
   Check,
@@ -27,7 +28,7 @@ import { AdminContentManager, AdminTeamManager } from './AdminContentManager';
 
 interface AdminPortalProps { onClose: () => void }
 
-type AdminSection = 'overview' | 'students' | 'inquiries' | 'documents' | 'ads' | 'lessons' | 'challenges' | 'team';
+type AdminSection = 'overview' | 'students' | 'inquiries' | 'documents' | 'ads' | 'lessons' | 'challenges' | 'team' | 'notifications';
 type AdminAccess = { email: string; role: 'owner' | 'admin' | 'moderator'; permissions: Record<string, boolean>; is_active: boolean };
 type InquiryStatus = 'new' | 'read' | 'closed';
 type StudentRow = {
@@ -40,6 +41,7 @@ type DocumentRow = {
   mime_type: string; file_size: number; is_published: boolean; created_at: string;
 };
 type AdRow = { id: string; title: string; html_content: string; placements: AdPlacement[]; is_active: boolean; created_at: string };
+type NotificationRow = { id: string; notification_type: 'announcement' | 'lesson' | 'challenge'; title: string; message: string; target_age_group: string; created_at: string };
 
 const DOCUMENT_BUCKET = 'alimni-documents';
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -63,6 +65,7 @@ const NAV: { id: AdminSection; label: string; icon: React.ElementType }[] = [
   { id: 'lessons', label: 'الدروس', icon: BookOpen },
   { id: 'challenges', label: 'التحديات', icon: Swords },
   { id: 'team', label: 'المشرفون والصلاحيات', icon: UserCog },
+  { id: 'notifications', label: 'سجل الإشعارات', icon: Bell },
 ];
 
 const formatDate = (value: string) => new Intl.DateTimeFormat('ar', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
@@ -89,6 +92,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [inquiries, setInquiries] = useState<InquiryRow[]>([]);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [ads, setAds] = useState<AdRow[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentDescription, setDocumentDescription] = useState('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -187,6 +191,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           .select('id,title,html_content,placements,is_active,created_at').order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
         setAds((data ?? []) as AdRow[]);
+      } else if (target === 'notifications') {
+        const { data, error } = await client.from('site_notifications')
+          .select('id,notification_type,title,message,target_age_group,created_at').order('created_at', { ascending: false }).limit(100);
+        if (error) throw error;
+        setNotifications((data ?? []) as NotificationRow[]);
       }
     } catch (error) {
       setPanelError(error instanceof Error ? error.message : 'تعذر تحميل هذا القسم.');
@@ -318,7 +327,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   };
 
   const can = (permission: string) => access?.role === 'owner' || access?.role === 'admin' || access?.permissions?.[permission] === true;
-  const visibleNav = NAV.filter((item) => item.id === 'overview' || (item.id === 'students' && can('students.view')) || (item.id === 'inquiries' && can('inquiries.manage')) || (item.id === 'documents' && can('documents.manage')) || (item.id === 'ads' && can('ads.manage')) || (item.id === 'lessons' && can('content.lessons')) || (item.id === 'challenges' && can('content.challenges')) || (item.id === 'team' && can('team.manage')));
+  const visibleNav = NAV.filter((item) => item.id === 'overview' || (item.id === 'students' && can('students.view')) || (item.id === 'inquiries' && can('inquiries.manage')) || (item.id === 'documents' && can('documents.manage')) || (item.id === 'ads' && can('ads.manage')) || (item.id === 'lessons' && can('content.lessons')) || (item.id === 'challenges' && can('content.challenges')) || (item.id === 'team' && can('team.manage')) || (item.id === 'notifications' && can('analytics.view')));
 
   const filteredStudents = students.filter((student) => `${student.name} ${student.last_name} ${student.grade_level}`.toLowerCase().includes(studentFilter.trim().toLowerCase()));
 
@@ -385,6 +394,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-2xl font-black">نظرة عامة</h2><p className="mt-1 text-sm text-slate-500">ملخص النشاط والمحتوى المنشور.</p></div><p className="text-xs text-slate-400">عداد الزوار يعتمد جلسات متصفح تقريبية ولا يخزن IP.</p></div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{summaryCards.map((card) => { const Icon = card.icon; return <article key={card.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${card.color}`}><Icon className="h-5 w-5" /></span><p className="mt-4 text-sm font-bold text-slate-500">{card.label}</p><p className="mt-1 text-3xl font-black tabular-nums">{card.value}</p><p className="mt-2 text-xs text-slate-400">{card.note}</p></article>; })}</div>
             <article className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-sm leading-7 text-indigo-950"><h3 className="font-black">خصوصية وأمان</h3><p className="mt-1">بيانات الأطفال والاستفسارات لا تُقرأ إلا بعد التحقق من صلاحية المدير في قاعدة البيانات. ملفات المسودات خاصة، وكود الإعلان يُعرض داخل إطار معزول عن صفحات الموقع.</p></article>
+          </>}
+          {section === 'notifications' && <>
+            <div><h2 className="text-2xl font-black">سجل الإشعارات الفورية</h2><p className="mt-1 text-sm text-slate-500">يُنشأ الإشعار تلقائيًا عند نشر إعلان أو درس أو تحدٍّ، ويصل فورًا للمتعلمين المتصلين.</p></div>
+            <div className="space-y-3">{notifications.map((item) => <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-start gap-3"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.notification_type === 'announcement' ? 'bg-rose-100 text-rose-700' : item.notification_type === 'lesson' ? 'bg-sky-100 text-sky-700' : 'bg-purple-100 text-purple-700'}`}><Bell className="h-5 w-5" /></span><div><h3 className="font-black">{item.title}</h3><p className="mt-1 text-sm leading-6 text-slate-600">{item.message}</p><p className="mt-2 text-xs text-slate-400">{item.target_age_group === 'all' ? 'كل الأعمار' : item.target_age_group} · {formatDate(item.created_at)}</p></div></div></article>)}{notifications.length === 0 && <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">لا توجد إشعارات منشورة بعد.</p>}</div>
           </>}
           {section === 'students' && <>
             <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-2xl font-black">قائمة التلاميذ</h2><p className="mt-1 text-sm text-slate-500">بيانات الملفات التعليمية المحفوظة في قاعدة البيانات.</p></div><input aria-label="بحث عن تلميذ" value={studentFilter} onChange={(event) => setStudentFilter(event.target.value)} placeholder="ابحث بالاسم أو المستوى" className="min-h-11 w-full max-w-xs rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-indigo-500" /></div>

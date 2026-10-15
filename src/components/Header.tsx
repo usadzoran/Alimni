@@ -3,6 +3,7 @@ import { Volume2, VolumeX, Sparkles, User, Trophy, BookOpen, Hash, Gamepad2, Che
 import { ChildProfile } from '../types';
 import { audioService } from '../services/audioService';
 import { storageService } from '../services/storageService';
+import { NotificationCenter } from './notifications/NotificationCenter';
 
 export type AppTab =
   | 'home'
@@ -234,6 +235,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-amber-500 text-sm sm:text-base animate-pulse-subtle">⭐</span>
             <span className="tabular-nums font-bold">{activeChild?.stars ?? 0}</span>
           </div>
+
+          <NotificationCenter activeChild={activeChild} />
 
           {/* Sound Controls with Instant Test and Feedback */}
           <div className="relative flex items-center">

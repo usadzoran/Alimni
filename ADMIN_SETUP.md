@@ -8,6 +8,7 @@
 2. `supabase_admin_portal_migration.sql`
 3. `supabase_admin_portal_security_hardening.sql`
 4. `supabase_admin_content_and_roles_migration.sql`
+5. `supabase_notifications_migration.sql`
 
 التشغيل المتكرر آمن بفضل `IF NOT EXISTS` وعمليات `DROP POLICY IF EXISTS` الموجودة في الترحيلات.
 
@@ -47,3 +48,7 @@ SET user_id = EXCLUDED.user_id, role = 'owner', is_active = true;
 - عرض التلاميذ
 - عرض الإحصاءات وعدد الزوار
 - إدارة المشرفين والصلاحيات (للمالك/المدير الكامل)
+
+## الإشعارات الفورية
+
+بعد تشغيل ترحيل الإشعارات، ينشئ Supabase إشعارًا تلقائيًا عند نشر إعلان أو درس أو تحدٍّ. تظهر الإشعارات في زر الجرس داخل واجهة التلميذ، ويعمل التحديث الفوري عبر Supabase Realtime. يمكن للتلميذ اختيار السماح بإشعارات المتصفح من زر الجرس.
