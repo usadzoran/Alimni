@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Activity,
   ArrowRight,
+  BookOpen,
   BarChart3,
   Check,
   FileText,
@@ -13,17 +14,21 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  Swords,
   Trash2,
+  UserCog,
   Upload,
   Users,
   X,
 } from 'lucide-react';
 import { getAdminSupabaseClient } from '../../lib/supabase';
 import type { AdPlacement } from '../site/PublicSitePages';
+import { AdminContentManager, AdminTeamManager } from './AdminContentManager';
 
 interface AdminPortalProps { onClose: () => void }
 
-type AdminSection = 'overview' | 'students' | 'inquiries' | 'documents' | 'ads';
+type AdminSection = 'overview' | 'students' | 'inquiries' | 'documents' | 'ads' | 'lessons' | 'challenges' | 'team';
+type AdminAccess = { email: string; role: 'owner' | 'admin' | 'moderator'; permissions: Record<string, boolean>; is_active: boolean };
 type InquiryStatus = 'new' | 'read' | 'closed';
 type StudentRow = {
   id: string; name: string; last_name: string; age: number; grade_level: string;
@@ -55,6 +60,9 @@ const NAV: { id: AdminSection; label: string; icon: React.ElementType }[] = [
   { id: 'inquiries', label: 'الاستفسارات', icon: HelpCircle },
   { id: 'documents', label: 'الملفات التعليمية', icon: FileText },
   { id: 'ads', label: 'الإعلانات', icon: Megaphone },
+  { id: 'lessons', label: 'الدروس', icon: BookOpen },
+  { id: 'challenges', label: 'التحديات', icon: Swords },
+  { id: 'team', label: 'المشرفون والصلاحيات', icon: UserCog },
 ];
 
 const formatDate = (value: string) => new Intl.DateTimeFormat('ar', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
@@ -66,6 +74,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
   const [section, setSection] = useState<AdminSection>('overview');
   const [checkingSession, setCheckingSession] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const [access, setAccess] = useState<AdminAccess | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -107,13 +116,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     if (sessionError || !sessionData.session) return false;
     const { data, error } = await client.rpc('is_alimni_admin');
     if (!error && data === true) {
+      const { data: accessRow } = await client.from('alimni_admin_allowlist').select('email,role,permissions,is_active').maybeSingle();
+      const row = accessRow as { email?: string; role?: AdminAccess['role']; permissions?: Record<string, boolean>; is_active?: boolean } | null;
+      setAccess({ email: row?.email || '', role: row?.role || 'owner', permissions: row?.permissions || {}, is_active: row?.is_active !== false });
       setAuthorized(true);
       setAuthError('');
       return true;
     }
     await client.auth.signOut();
     setAuthorized(false);
-    setAuthError('هذا الحساب غير مخوّل بعد. يجب أن يضيف مالك الموقع UUID هذا الحساب إلى قائمة المدراء.');
+    setAccess(null);
+    setAuthError('هذا الحساب غير مخوّل بعد. يجب أن يضيفه مالك الموقع إلى فريق الإدارة بصلاحيات محددة.');
     return false;
   };
 
@@ -128,26 +141,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   const refreshSummary = async () => {
     if (!client) return;
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
+    const fullAccess = access?.role === 'owner' || access?.role === 'admin';
+    const allowed = (permission: string) => fullAccess || access?.permissions?.[permission] === true;
+    const since = new Date(); since.setDate(since.getDate() - 30);
     const [visits, recentVisits, studentCount, inquiryCount, documentCount, adCount] = await Promise.all([
-      client.from('site_visits').select('session_id', { count: 'exact', head: true }),
-      client.from('site_visits').select('session_id', { count: 'exact', head: true }).gte('created_at', since.toISOString()),
-      client.from('children').select('id', { count: 'exact', head: true }),
-      client.from('site_inquiries').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-      client.from('site_documents').select('id', { count: 'exact', head: true }).eq('is_published', true),
-      client.from('site_ads').select('id', { count: 'exact', head: true }).eq('is_active', true),
+      allowed('analytics.view') ? client.from('site_visits').select('session_id', { count: 'exact', head: true }) : Promise.resolve({ count: 0, error: null }),
+      allowed('analytics.view') ? client.from('site_visits').select('session_id', { count: 'exact', head: true }).gte('created_at', since.toISOString()) : Promise.resolve({ count: 0, error: null }),
+      allowed('students.view') ? client.from('children').select('id', { count: 'exact', head: true }) : Promise.resolve({ count: 0, error: null }),
+      allowed('inquiries.manage') ? client.from('site_inquiries').select('id', { count: 'exact', head: true }).eq('status', 'new') : Promise.resolve({ count: 0, error: null }),
+      allowed('documents.manage') ? client.from('site_documents').select('id', { count: 'exact', head: true }).eq('is_published', true) : Promise.resolve({ count: 0, error: null }),
+      allowed('ads.manage') ? client.from('site_ads').select('id', { count: 'exact', head: true }).eq('is_active', true) : Promise.resolve({ count: 0, error: null }),
     ]);
     const resultError = [visits, recentVisits, studentCount, inquiryCount, documentCount, adCount].find((result) => result.error)?.error;
     if (resultError) { setPanelError('تعذر تحميل بعض الإحصاءات. تحقق من صلاحيات قاعدة البيانات.'); return; }
-    setSummary({
-      totalVisits: visits.count ?? 0,
-      recentVisits: recentVisits.count ?? 0,
-      students: studentCount.count ?? 0,
-      newInquiries: inquiryCount.count ?? 0,
-      publishedDocuments: documentCount.count ?? 0,
-      activeAds: adCount.count ?? 0,
-    });
+    setSummary({ totalVisits: visits.count ?? 0, recentVisits: recentVisits.count ?? 0, students: studentCount.count ?? 0, newInquiries: inquiryCount.count ?? 0, publishedDocuments: documentCount.count ?? 0, activeAds: adCount.count ?? 0 });
   };
 
   const loadSection = async (target: AdminSection = section) => {
@@ -212,7 +219,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
 
   const signOut = async () => {
     if (client) await client.auth.signOut();
-    setAuthorized(false); setSection('overview'); setPassword(''); setAuthNotice('تم تسجيل الخروج من لوحة الإدارة.');
+    setAuthorized(false); setAccess(null); setSection('overview'); setPassword(''); setAuthNotice('تم تسجيل الخروج من لوحة الإدارة.');
   };
 
   const markInquiry = async (inquiry: InquiryRow, status: InquiryStatus) => {
@@ -310,6 +317,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
     setNotice('تم حذف الإعلان.'); await loadSection('ads'); await refreshSummary();
   };
 
+  const can = (permission: string) => access?.role === 'owner' || access?.role === 'admin' || access?.permissions?.[permission] === true;
+  const visibleNav = NAV.filter((item) => item.id === 'overview' || (item.id === 'students' && can('students.view')) || (item.id === 'inquiries' && can('inquiries.manage')) || (item.id === 'documents' && can('documents.manage')) || (item.id === 'ads' && can('ads.manage')) || (item.id === 'lessons' && can('content.lessons')) || (item.id === 'challenges' && can('content.challenges')) || (item.id === 'team' && can('team.manage')));
+
   const filteredStudents = students.filter((student) => `${student.name} ${student.last_name} ${student.grade_level}`.toLowerCase().includes(studentFilter.trim().toLowerCase()));
 
   if (checkingSession) return <div dir="rtl" className="grid min-h-screen place-items-center bg-slate-950 text-white">جارٍ التحقق من صلاحية الدخول...</div>;
@@ -324,7 +334,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
           </div>
           <p className="mt-5 text-xs font-black text-indigo-700">منطقة خاصة بصاحب الموقع</p>
           <h1 className="mt-1 text-2xl font-black">لوحة إدارة عَلِّمني</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">يلزم حساب Supabase مُنشأ مسبقًا ومربوط بمعرّف UUID مصرح به. لا يمكن إنشاء حساب مدير من هذه الصفحة.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">يلزم حساب Supabase مُنشأ مسبقًا ومربوط بصلاحية إدارة. يمكن لمالك الموقع إنشاء مشرفين لاحقًا بصلاحيات محددة.</p>
           <form onSubmit={(event) => void signIn(event)} className="mt-6 space-y-4">
             <div>
               <label htmlFor="admin-email" className="mb-1.5 block text-sm font-black">البريد الإلكتروني</label>
@@ -361,12 +371,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
       <header className="border-b border-slate-800 bg-slate-950 px-4 py-4 text-white sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500 text-white"><ShieldCheck className="h-6 w-6" /></span><div><p className="text-xs font-bold text-indigo-200">مساحة خاصة · غير ظاهرة للزوار</p><h1 className="text-xl font-black sm:text-2xl">إدارة عَلِّمني</h1></div></div>
-          <div className="flex flex-wrap items-center gap-2"><span className="hidden text-xs text-slate-300 sm:inline">{email || 'مدير الموقع'}</span><button type="button" onClick={() => void loadSection(section)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-sm font-bold transition hover:bg-white/20"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> تحديث</button><button type="button" onClick={() => void signOut()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-rose-500/20 px-3 text-sm font-bold text-rose-100 transition hover:bg-rose-500/30"><LogOut className="h-4 w-4" /> خروج</button><button type="button" onClick={onClose} aria-label="العودة إلى الموقع" className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20"><X className="h-5 w-5" /></button></div>
+          <div className="flex flex-wrap items-center gap-2"><span className="hidden text-xs text-slate-300 sm:inline">{access?.email || email || 'مدير الموقع'} · {access?.role === 'owner' ? 'مالك' : access?.role === 'admin' ? 'مدير' : 'مشرف'}</span><button type="button" onClick={() => void loadSection(section)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-sm font-bold transition hover:bg-white/20"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> تحديث</button><button type="button" onClick={() => void signOut()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-rose-500/20 px-3 text-sm font-bold text-rose-100 transition hover:bg-rose-500/30"><LogOut className="h-4 w-4" /> خروج</button><button type="button" onClick={onClose} aria-label="العودة إلى الموقع" className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20"><X className="h-5 w-5" /></button></div>
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[220px_1fr] lg:py-8">
         <nav aria-label="أقسام الإدارة" className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 lg:sticky lg:top-5 lg:h-fit lg:flex-col">
-          {NAV.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setSection(item.id)} className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-black transition lg:w-full ${section === item.id ? 'bg-indigo-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}><Icon className="h-4 w-4" />{item.label}</button>; })}
+          {visibleNav.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => setSection(item.id)} className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-black transition lg:w-full ${section === item.id ? 'bg-indigo-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}><Icon className="h-4 w-4" />{item.label}</button>; })}
         </nav>
         <section className="min-w-0 space-y-5">
           {panelError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">{panelError}</p>}
@@ -385,6 +395,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onClose }) => {
             <div><h2 className="text-2xl font-black">الاستفسارات</h2><p className="mt-1 text-sm text-slate-500">رسائل نموذج «أرسل استفسارًا» في الموقع العام.</p></div>
             <div className="space-y-3">{inquiries.map((inquiry) => <article key={inquiry.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-black">{inquiry.name}</h3><p className="mt-1 text-xs text-slate-500">{inquiry.email || 'لم يضف بريدًا'} · {formatDate(inquiry.created_at)}</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${inquiry.status === 'new' ? 'bg-amber-100 text-amber-800' : inquiry.status === 'read' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600'}`}>{inquiry.status === 'new' ? 'جديد' : inquiry.status === 'read' ? 'قيد المراجعة' : 'مغلق'}</span></div><p className="mt-4 whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">{inquiry.message}</p><div className="mt-3 flex flex-wrap gap-2">{inquiry.status !== 'read' && <button type="button" onClick={() => void markInquiry(inquiry, 'read')} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-50 px-3 text-xs font-black text-sky-800 hover:bg-sky-100"><Check className="h-4 w-4" /> قيد المراجعة</button>}{inquiry.status !== 'closed' && <button type="button" onClick={() => void markInquiry(inquiry, 'closed')} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700 hover:bg-slate-200"><X className="h-4 w-4" /> إغلاق</button>}{inquiry.status !== 'new' && <button type="button" onClick={() => void markInquiry(inquiry, 'new')} className="inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-bold text-slate-500 hover:bg-amber-50"><RefreshCw className="h-4 w-4" /> إعادة فتح</button>}</div></article>)}{inquiries.length === 0 && <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">لا توجد استفسارات بعد.</p>}</div>
           </>}
+          {section === 'lessons' && <AdminContentManager client={client!} kind="lessons" canManage={can('content.lessons')} />}
+          {section === 'challenges' && <AdminContentManager client={client!} kind="challenges" canManage={can('content.challenges')} />}
+          {section === 'team' && <AdminTeamManager client={client!} canManage={can('team.manage')} />}
           {section === 'documents' && <>
             <div><h2 className="text-2xl font-black">الملفات التعليمية</h2><p className="mt-1 text-sm text-slate-500">ارفع ملفات PDF أو Word. تُحفظ كمسودات خاصة حتى تضغط «نشر».</p></div>
             <form onSubmit={(event) => void uploadDocument(event)} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
