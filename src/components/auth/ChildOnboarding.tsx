@@ -44,8 +44,8 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
       setError('أكمل جميع البيانات للمتابعة.');
       return;
     }
-    if (!Number.isInteger(ageValue) || ageValue < 2 || ageValue > 7) {
-      setError('أدخل عمرًا صحيحًا بين سنتين و7 سنوات.');
+    if (!Number.isInteger(ageValue) || ageValue < 2 || ageValue > 12) {
+      setError('أدخل عمرًا صحيحًا بين سنتين و12 سنة.');
       return;
     }
 
@@ -56,7 +56,7 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
         name: cleanFirstName,
         lastName: cleanLastName,
         age: ageValue,
-        ageGroup: ageValue <= 4 ? '3-4' : '5-6',
+        ageGroup: ageValue <= 4 ? '3-4' : ageValue <= 7 ? '5-6' : '7-12',
         gradeLevel,
       });
       audioService.playTap();
@@ -131,7 +131,7 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
                   type="number"
                   inputMode="numeric"
                   min={2}
-                  max={7}
+                  max={12}
                   step={1}
                   required
                   value={age}
@@ -140,7 +140,7 @@ export const ChildOnboarding: React.FC<ChildOnboardingProps> = ({ child, onCompl
                   className="w-full rounded-xl border-2 border-slate-200 bg-white py-3 pr-10 pl-3 text-sm font-semibold outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
                 />
               </div>
-              <p className="mt-1 text-xs text-slate-400">من سنتين إلى 7 سنوات</p>
+              <p className="mt-1 text-xs text-slate-400">من سنتين إلى 12 سنة</p>
             </div>
             <div>
               <label htmlFor="child-grade" className="mb-1.5 block text-sm font-bold text-slate-700">المستوى الدراسي</label>

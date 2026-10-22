@@ -137,7 +137,7 @@ export const ChildProfilePickerModal: React.FC<ChildProfilePickerModalProps> = (
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">الفئة العمرية:</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setNewAge('3-4')}
@@ -159,6 +159,17 @@ export const ChildProfilePickerModal: React.FC<ChildProfilePickerModalProps> = (
                   }`}
                 >
                   5 - 6 سنوات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAge('7-12')}
+                  className={`py-2 rounded-xl text-xs font-bold border-2 transition-all cursor-pointer ${
+                    newAge === '7-12'
+                      ? 'bg-indigo-600 text-white border-indigo-700'
+                      : 'bg-slate-50 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  7 - 12 سنة
                 </button>
               </div>
             </div>

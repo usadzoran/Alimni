@@ -13,6 +13,7 @@ import { ChildProfilePickerModal } from './components/auth/ChildProfilePickerMod
 import { ChildOnboarding } from './components/auth/ChildOnboarding';
 import { AgeGroupSelection, FutureGroupPage } from './components/auth/AgeGroupFlow';
 import { LearningTrackActionsBar } from './components/auth/LearningTrackActionsBar';
+import { PrimaryChallengeHub } from './components/primary/PrimaryChallengeHub';
 import { storageService } from './services/storageService';
 import { audioService } from './services/audioService';
 import { BookOpen, Hash, Gamepad2, Trophy, Sparkles, Home, ClipboardCheck } from 'lucide-react';
@@ -144,6 +145,10 @@ export default function App() {
     );
   }
 
+  if (currentChild.learningTrack === 'primary-4-5') {
+    return <PrimaryChallengeHub child={currentChild} onBack={openAgeGroupSelection} />;
+  }
+
   return (
     <div className="min-h-screen bg-amber-50/40 text-slate-800 flex flex-col selection:bg-amber-200">
       {/* Universal Top Bar */}
@@ -158,7 +163,7 @@ export default function App() {
       />
 
       <LearningTrackActionsBar
-        track="2-4"
+        track={currentChild.learningTrack}
         onChangeGroup={openAgeGroupSelection}
         onExit={openAgeGroupSelection}
       />

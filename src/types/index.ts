@@ -1,5 +1,5 @@
-export type AgeGroup = '3-4' | '5-6';
-export type LearningTrack = '2-4' | '5-7';
+export type AgeGroup = '3-4' | '5-6' | '7-12';
+export type LearningTrack = '2-4' | '5-7' | 'primary-4-5';
 
 export interface LetterShape {
   isolated: string; // منفصل
@@ -105,7 +105,7 @@ export interface LevelDefinition {
 export interface QuizAttempt {
   id: string;
   childId: string;
-  category: 'letter' | 'number' | 'game' | 'level_exam';
+  category: 'letter' | 'number' | 'game' | 'level_exam' | 'primary_challenge';
   title: string;
   totalQuestions: number;
   correctAnswers: number;

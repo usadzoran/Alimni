@@ -54,10 +54,10 @@ export function sanitizeChild(c: unknown): ChildProfile {
     name: typeof obj.name === 'string' && obj.name.trim() ? obj.name : 'سارة',
     lastName: typeof obj.lastName === 'string' && obj.lastName.trim() ? obj.lastName.trim() : undefined,
     avatar: typeof obj.avatar === 'string' && obj.avatar ? obj.avatar : '🐰',
-    age: typeof obj.age === 'number' && Number.isInteger(obj.age) && obj.age >= 2 && obj.age <= 7 ? obj.age : undefined,
-    ageGroup: obj.ageGroup === '5-6' ? '5-6' : '3-4',
+    age: typeof obj.age === 'number' && Number.isInteger(obj.age) && obj.age >= 2 && obj.age <= 12 ? obj.age : undefined,
+    ageGroup: obj.ageGroup === '7-12' ? '7-12' : obj.ageGroup === '5-6' ? '5-6' : '3-4',
     gradeLevel: typeof obj.gradeLevel === 'string' && obj.gradeLevel.trim() ? obj.gradeLevel.trim() : undefined,
-    learningTrack: obj.learningTrack === '2-4' || obj.learningTrack === '5-7' ? obj.learningTrack : undefined,
+    learningTrack: obj.learningTrack === '2-4' || obj.learningTrack === '5-7' || obj.learningTrack === 'primary-4-5' ? obj.learningTrack : undefined,
     currentLevelId: typeof obj.currentLevelId === 'number' && obj.currentLevelId >= 1 ? obj.currentLevelId : 1,
     stars: typeof obj.stars === 'number' && !isNaN(obj.stars) ? obj.stars : 0,
     unlockedCharacters:
@@ -453,7 +453,7 @@ class StorageService {
     }
   }
 
-  public addChild(name: string, ageGroup: '3-4' | '5-6', avatar: string): ChildProfile {
+  public addChild(name: string, ageGroup: '3-4' | '5-6' | '7-12', avatar: string): ChildProfile {
     const newChild: ChildProfile = {
       id: `child_${Date.now()}`,
       name: name.trim() || 'طفل جديد',

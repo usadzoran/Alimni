@@ -9,6 +9,7 @@
 3. `supabase_admin_portal_security_hardening.sql`
 4. `supabase_admin_content_and_roles_migration.sql`
 5. `supabase_notifications_migration.sql`
+6. `supabase_primary_track_migration.sql`
 
 التشغيل المتكرر آمن بفضل `IF NOT EXISTS` وعمليات `DROP POLICY IF EXISTS` الموجودة في الترحيلات.
 
